@@ -121,57 +121,72 @@ class MainWP_Billing_DB {
 	}
 
 	/**
-	 * Retrieves billing records, optionally filtered by site.
+	 * Retrieve billing records, optionally filtered and joined with MainWP sites.
 	 *
-	 * @param int $site_id MainWP Site ID to filter by, or 0 for all.
+	 * @param array $params Query parameters (e.g., 'qb_client_name', 'mainwp_site_id').
 	 *
 	 * @return array Array of billing records.
 	 */
-	public function get_billing_records( $site_id = 0 ) {
+	public function get_billing_records( $params = array() ) {
 		$table_records = $this->get_table_name( 'records' );
-		$table_wp      = $this->wpdb->prefix . 'mainwp_wp'; // MainWP child sites table
+		$table_sites   = $this->wpdb->prefix . 'mainwp_wp';
 
 		$where = ' WHERE 1=1 ';
-		if ( $site_id > 0 ) {
-			$where .= $this->wpdb->prepare( ' AND r.mainwp_site_id = %d', $site_id );
-		} elseif ( $site_id < 0 ) {
-			$where .= ' AND r.mainwp_site_id = 0 '; // Filter for unmapped records
+		$sql   = "SELECT rec.*, site.name AS site_name, site.url AS site_url
+				FROM {$table_records} rec
+				LEFT JOIN {$table_sites} site ON rec.mainwp_site_id = site.id";
+
+		$sql_params = array();
+
+		// Filter by QuickBooks Client Name
+		if ( isset( $params['qb_client_name'] ) && ! empty( $params['qb_client_name'] ) ) {
+			$where .= ' AND rec.qb_client_name = %s ';
+			$sql_params[] = $params['qb_client_name'];
 		}
 
-		$sql = "SELECT
-			r.*,
-			w.name as site_name,
-			w.url as site_url
-			FROM {$table_records} r
-			LEFT JOIN {$table_wp} w ON r.mainwp_site_id = w.id
-			{$where}
-			ORDER BY r.qb_client_name ASC";
+		// Filter by MainWP Site ID (used for individual site page)
+		if ( isset( $params['mainwp_site_id'] ) && $params['mainwp_site_id'] > 0 ) {
+			$where .= ' AND rec.mainwp_site_id = %d ';
+			$sql_params[] = intval( $params['mainwp_site_id'] );
+		}
 
-		$records = $this->wpdb->get_results( $sql, ARRAY_A );
-		return is_array( $records ) ? $records : array();
+		$sql .= $where . ' ORDER BY rec.qb_client_name ASC';
+
+		if ( ! empty( $sql_params ) ) {
+			$results = $this->wpdb->get_results( $this->wpdb->prepare( $sql, $sql_params ) );
+		} else {
+			$results = $this->wpdb->get_results( $sql );
+		}
+
+		return ( is_array( $results ) ) ? $results : array();
 	}
 
 	/**
-	 * Manually updates the MainWP site ID for a single billing record.
+	 * Updates the mainwp_site_id for a specific billing record.
 	 *
 	 * @param int $record_id The ID of the billing record.
-	 * @param int $mainwp_site_id The MainWP site ID to map to.
+	 * @param int $site_id The MainWP site ID to map to.
 	 *
-	 * @return bool True on success, false on failure.
+	 * @return true|\WP_Error True on success, WP_Error on failure.
 	 */
-	public function update_record_site_map( $record_id, $mainwp_site_id ) {
+	public function update_site_map( $record_id, $site_id ) {
 		$table_name = $this->get_table_name( 'records' );
 
 		$updated = $this->wpdb->update(
 			$table_name,
-			array( 'mainwp_site_id' => $mainwp_site_id ),
+			array( 'mainwp_site_id' => $site_id ),
 			array( 'id' => $record_id ),
 			array( '%d' ),
 			array( '%d' )
 		);
 
-		return false !== $updated;
+		if ( false === $updated ) {
+			return new \WP_Error( 'db_error', esc_html__( 'Database update failed.', 'mainwp-billing-extension' ) );
+		}
+
+		return true;
 	}
+
 
 	/**
 	 * Imports the billing data from the uploaded QuickBooks CSV file.
