@@ -1,20 +1,20 @@
 <?php
 /**
- * MainWP Development
+ * MainWP Billing
  *
  * This class handles the extension process.
  *
  * @package MainWP/Extensions
  */
 
- namespace MainWP\Extensions\Development;
+ namespace MainWP\Extensions\Billing;
 
  /**
-  * Class MainWP_Development
+  * Class MainWP_Billing
   *
   * @package MainWP/Extensions
   */
-class MainWP_Development_Ajax {
+class MainWP_Billing_Ajax {
 
 	/**
 	 * @var string The update version.
@@ -39,7 +39,7 @@ class MainWP_Development_Ajax {
 	}
 
 	/**
-	 * MainWP_Development_Ajax constructor.
+	 * MainWP_Billing_Ajax constructor.
 	 */
 	public function __construct() {
 		add_action( 'admin_init', array( &$this, 'admin_init' ) );
@@ -54,7 +54,7 @@ class MainWP_Development_Ajax {
         /**
 		 * Example MainWP AJAX actions.
 		 */
-		do_action( 'mainwp_ajax_add_action', 'mainwp_development_do_something', array( &$this, 'ajax_do_something' ) );
+		do_action( 'mainwp_ajax_add_action', 'mainwp_billing_do_something', array( &$this, 'ajax_do_something' ) );
 	}
 
     /**
@@ -64,7 +64,7 @@ class MainWP_Development_Ajax {
      */
 	public function ajax_do_something() {
 
-		do_action( 'mainwp_secure_request', 'mainwp_development_do_something' );
+		do_action( 'mainwp_secure_request', 'mainwp_billing_do_something' );
 		// Do your PHP Work here then return the results via wp_send_json.
 	}
 }
