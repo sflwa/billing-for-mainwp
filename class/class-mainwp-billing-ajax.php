@@ -55,6 +55,7 @@ class MainWP_Billing_Ajax {
 		 * Example MainWP AJAX actions.
 		 */
 		do_action( 'mainwp_ajax_add_action', 'mainwp_billing_do_something', array( &$this, 'ajax_do_something' ) );
+        do_action( 'mainwp_ajax_add_action', 'mainwp_billing_map_site', array( &$this, 'ajax_map_site' ) );
 	}
 
     /**
@@ -66,5 +67,29 @@ class MainWP_Billing_Ajax {
 
 		do_action( 'mainwp_secure_request', 'mainwp_billing_do_something' );
 		// Do your PHP Work here then return the results via wp_send_json.
+	}
+
+    /**
+     * Ajax action to manually map a billing record to a MainWP site. (Req #5)
+     *
+     * @return void
+     */
+	public function ajax_map_site() {
+		do_action( 'mainwp_secure_request', 'mainwp_billing_map_site' );
+
+		$record_id = isset( $_POST['record_id'] ) ? intval( wp_unslash( $_POST['record_id'] ) ) : 0;
+		$site_id   = isset( $_POST['site_id'] ) ? intval( wp_unslash( $_POST['site_id'] ) ) : 0;
+
+		if ( 0 === $record_id ) {
+			wp_send_json_error( array( 'error' => esc_html__( 'Invalid record ID.', 'mainwp-billing-extension' ) ) );
+		}
+
+		$result = MainWP_Billing_DB::get_instance()->update_site_map( $record_id, $site_id );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'error' => $result->get_error_message() ) );
+		}
+
+		wp_send_json_success( array( 'message' => esc_html__( 'Mapping updated successfully.', 'mainwp-billing-extension' ) ) );
 	}
 }
