@@ -172,6 +172,9 @@ class MainWP_Billing_DB {
 	public function update_site_map( $record_id, $site_id ) {
 		$table_name = $this->get_table_name( 'records' );
 
+		// Ensure site_id is explicitly an integer.
+		$site_id = (int) $site_id;
+
 		$updated = $this->wpdb->update(
 			$table_name,
 			array( 'mainwp_site_id' => $site_id ),
@@ -201,7 +204,6 @@ class MainWP_Billing_DB {
 		}
 
 		// Use the fgetcsv function with explicit parameters: delimiter (comma), no enclosure, no escape character.
-		// The enclosure parameter is set to a single space, as an empty string can cause issues in older PHP versions.
 		$handle = fopen( $file_path, 'r' );
 		if ( false === $handle ) {
 			return new \WP_Error( 'file_open_failed', esc_html__( 'Failed to open the uploaded file.', 'mainwp-billing-extension' ) );
@@ -312,11 +314,11 @@ class MainWP_Billing_DB {
 
 			if ( $existing_record ) {
 				// Record exists, UPDATE it (Req #10 - Updates).
-				$mainwp_site_id = intval( $existing_record->mainwp_site_id );
+				$mainwp_site_id = (int) $existing_record->mainwp_site_id; // Explicit cast
 
 				// Only if site is not mapped (ID is 0), attempt auto-mapping.
 				if ( 0 === $mainwp_site_id ) {
-					$site_id = $this->attempt_auto_map( $qb_client_name, $site_names );
+					$site_id = (int) $this->attempt_auto_map( $qb_client_name, $site_names ); // Explicit cast
 				} else {
 					// Keep existing mapping (Req #5 - Manual overrides will be stored here).
 					$site_id = $mainwp_site_id;
@@ -341,7 +343,7 @@ class MainWP_Billing_DB {
 				// Record does NOT exist, INSERT it (Req #10 - Additions).
 
 				// Auto-map the site name (Req #4).
-				$site_id = $this->attempt_auto_map( $qb_client_name, $site_names );
+				$site_id = (int) $this->attempt_auto_map( $qb_client_name, $site_names ); // Explicit cast
 
 				$data_to_insert['mainwp_site_id'] = $site_id;
 				$data_format[] = '%d';
