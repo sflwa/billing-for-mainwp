@@ -121,6 +121,59 @@ class MainWP_Billing_DB {
 	}
 
 	/**
+	 * Retrieves billing records, optionally filtered by site.
+	 *
+	 * @param int $site_id MainWP Site ID to filter by, or 0 for all.
+	 *
+	 * @return array Array of billing records.
+	 */
+	public function get_billing_records( $site_id = 0 ) {
+		$table_records = $this->get_table_name( 'records' );
+		$table_wp      = $this->wpdb->prefix . 'mainwp_wp'; // MainWP child sites table
+
+		$where = ' WHERE 1=1 ';
+		if ( $site_id > 0 ) {
+			$where .= $this->wpdb->prepare( ' AND r.mainwp_site_id = %d', $site_id );
+		} elseif ( $site_id < 0 ) {
+			$where .= ' AND r.mainwp_site_id = 0 '; // Filter for unmapped records
+		}
+
+		$sql = "SELECT
+			r.*,
+			w.name as site_name,
+			w.url as site_url
+			FROM {$table_records} r
+			LEFT JOIN {$table_wp} w ON r.mainwp_site_id = w.id
+			{$where}
+			ORDER BY r.qb_client_name ASC";
+
+		$records = $this->wpdb->get_results( $sql, ARRAY_A );
+		return is_array( $records ) ? $records : array();
+	}
+
+	/**
+	 * Manually updates the MainWP site ID for a single billing record.
+	 *
+	 * @param int $record_id The ID of the billing record.
+	 * @param int $mainwp_site_id The MainWP site ID to map to.
+	 *
+	 * @return bool True on success, false on failure.
+	 */
+	public function update_record_site_map( $record_id, $mainwp_site_id ) {
+		$table_name = $this->get_table_name( 'records' );
+
+		$updated = $this->wpdb->update(
+			$table_name,
+			array( 'mainwp_site_id' => $mainwp_site_id ),
+			array( 'id' => $record_id ),
+			array( '%d' ),
+			array( '%d' )
+		);
+
+		return false !== $updated;
+	}
+
+	/**
 	 * Imports the billing data from the uploaded QuickBooks CSV file.
 	 *
 	 * @param string $file_path The temporary path to the uploaded CSV file.
