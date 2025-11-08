@@ -131,8 +131,8 @@ class MainWP_Billing_Overview {
 		?>
 
 		<div class="ui labeled icon inverted menu mainwp-sub-submenu" id="mainwp-pro-billing-menu">
-			<a href="admin.php?page=Extensions-Mainwp-Billing-Extension&tab=dashboard" class="item <?php echo ( $current_tab == 'dashboard' ) ? 'active' : ''; ?>"><i class="tasks icon"></i> <?php esc_html_e( 'Dashboard', 'mainwp-billing-extension' ); ?></a>
-			<a href="admin.php?page=Extensions-Mainwp-Billing-Extension&tab=settings" class="item <?php echo ( $current_tab == 'settings' || $current_tab == '' ) ? 'active' : ''; ?>"><i class="file alternate outline icon"></i> <?php esc_html_e( 'Settings', 'mainwp-billing-extension' ); ?></a>
+			<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=dashboard" class="item <?php echo ( $current_tab == 'dashboard' ) ? 'active' : ''; ?>"><i class="tasks icon"></i> <?php esc_html_e( 'Dashboard', 'mainwp-billing-extension' ); ?></a>
+			<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=settings" class="item <?php echo ( $current_tab == 'settings' || $current_tab == '' ) ? 'active' : ''; ?>"><i class="file alternate outline icon"></i> <?php esc_html_e( 'Settings', 'mainwp-billing-extension' ); ?></a>
 		</div>
 		<?php
 
@@ -179,7 +179,7 @@ class MainWP_Billing_Overview {
 			<div class="ui divider"></div>
 
 			<form method="get" action="admin.php">
-				<input type="hidden" name="page" value="Extensions-Mainwp-Billing-Extension" />
+				<input type="hidden" name="page" value="Extensions-Billing-For-Mainwp-Main" />
 				<input type="hidden" name="tab" value="dashboard" />
 				<div class="ui grid stackable">
 					<div class="eight wide column">
@@ -198,7 +198,7 @@ class MainWP_Billing_Overview {
 					<div class="eight wide column">
                         <div class="field">
                             <label>&nbsp;</label>
-                            <a href="admin.php?page=Extensions-Mainwp-Billing-Extension&tab=dashboard" class="ui basic button"><?php esc_html_e( 'Clear Filter', 'mainwp-billing-extension' ); ?></a>
+                            <a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=dashboard" class="ui basic button"><?php esc_html_e( 'Clear Filter', 'mainwp-billing-extension' ); ?></a>
                         </div>
 					</div>
 				</div>
@@ -219,4 +219,101 @@ class MainWP_Billing_Overview {
 							<th><?php esc_html_e( 'Template Name', 'mainwp-billing-extension' ); ?></th>
 							<th><?php esc_html_e( 'Next Date', 'mainwp-billing-extension' ); ?></th>
 							<th><?php esc_html_e( 'Amount', 'mainwp-billing-extension' ); ?></th>
-							<th><?php esc_html_e( 'Mapped Site', 'mainwp-billing-
+							<th><?php esc_html_e( 'Mapped Site', 'mainwp-billing-extension' ); ?></th>
+							<th class="right aligned"><?php esc_html_e( 'Manual Map/Update', 'mainwp-billing-extension' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $records as $record ) : ?>
+							<tr>
+								<td><?php echo esc_html( $record->qb_client_name ); ?></td>
+								<td><?php echo esc_html( $record->template_name ); ?></td>
+								<td><?php echo MainWP_Billing_Utility::format_date( strtotime( $record->next_date ) ); ?></td>
+								<td><?php echo esc_html( '$' . number_format( floatval( $record->amount ), 2 ) ); ?></td>
+								<td>
+									<?php
+									if ( $record->mainwp_site_id > 0 ) {
+										echo '<a href="' . esc_url( 'admin.php?page=managesites&dashboard=' . $record->mainwp_site_id ) . '" target="_blank">' . esc_html( $record->site_name ) . '</a>';
+									} else {
+										echo '<span class="ui red label">' . esc_html__( 'Unmapped', 'mainwp-billing-extension' ) . '</span>';
+									}
+									?>
+								</td>
+								<td class="right aligned">
+									<select class="ui dropdown mainwp-billing-site-select" data-record-id="<?php echo intval( $record->id ); ?>">
+										<option value="0"><?php esc_html_e( '-- Select Site --', 'mainwp-billing-extension' ); ?></option>
+										<?php
+										foreach ( $mainwp_sites_map as $site_id => $site_name ) {
+											$selected = selected( $record->mainwp_site_id, $site_id, false );
+											echo '<option value="' . intval( $site_id ) . '" ' . $selected . '>' . esc_html( $site_name ) . '</option>';
+										}
+										?>
+									</select>
+									<button class="ui tiny green button mainwp-billing-map-button" data-record-id="<?php echo intval( $record->id ); ?>" style="display:none;"><?php esc_html_e( 'Map', 'mainwp-billing-extension' ); ?></button>
+                                    <i class="ui small check circle icon green mainwp-billing-mapped-check" style="display:none;"></i>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+
+			<?php endif; ?>
+
+		</div>
+        <?php
+    }
+
+    /**
+     * Render the settings page content with CSV import form.
+     *
+     * @return void
+     */
+    public static function render_settings() {
+        $utility = MainWP_Billing_Utility::get_instance();
+        $last_imported = $utility->get_setting( 'last_imported_timestamp' );
+        $import_message = $utility->get_setting( 'import_message' );
+        // Clear message after display.
+        $utility->update_setting( 'import_message', '' );
+
+        ?>
+        <div class="ui segment">
+            <h2 class="ui header"><?php esc_html_e( 'QuickBooks CSV Import', 'mainwp-billing-extension' ); ?></h2>
+            <div class="ui divider"></div>
+
+            <?php if ( ! empty( $import_message ) ) : ?>
+                <?php echo $import_message; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped (already escaped with div wrapper in handle_settings_post) ?>
+            <?php endif; ?>
+
+            <form method="post" action="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=settings" enctype="multipart/form-data" class="ui form">
+                <?php wp_nonce_field( 'mainwp_billing_settings', 'mainwp_billing_settings_nonce' ); ?>
+
+                <div class="field">
+                    <label><?php esc_html_e( 'Upload Recurring Transactions CSV', 'mainwp-billing-extension' ); ?></label>
+                    <div class="ui action input">
+                        <input type="file" name="billing_csv_file" id="billing_csv_file" accept=".csv" required>
+                    </div>
+                    <p class="ui basic message">
+                        <?php esc_html_e( 'The CSV must contain the columns: "Transaction Type", "Template Name", "Previous date", "Next Date", "Name", "Memo/Description", "Account", and "Amount".', 'mainwp-billing-extension' ); ?>
+                    </p>
+                </div>
+
+                <input type="submit" name="submit_import_billing_data" id="submit_import_billing_data" class="ui green button" value="<?php esc_html_e( 'Upload and Import Data', 'mainwp-billing-extension' ); ?>" />
+            </form>
+
+            <div class="ui divider"></div>
+
+            <h3 class="ui header"><?php esc_html_e( 'Import Status', 'mainwp-billing-extension' ); ?></h3>
+            <p>
+                <strong><?php esc_html_e( 'Last Imported Date:', 'mainwp-billing-extension' ); ?></strong>
+                <?php
+                if ( ! empty( $last_imported ) ) {
+                    echo MainWP_Billing_Utility::format_timestamp( $last_imported ); // Req #9
+                } else {
+                    esc_html_e( 'Never imported.', 'mainwp-billing-extension' );
+                }
+                ?>
+            </p>
+        </div>
+        <?php
+    }
+}
