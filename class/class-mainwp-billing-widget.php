@@ -105,7 +105,7 @@ class MainWP_Billing_Widget {
 		<div class="ui divider" style="margin-left:-1em;margin-right:-1em;"></div>
 		<div class="ui two columns grid">
 			<div class="left aligned column">
-				<a href="admin.php?page=Extensions-Mainwp-Billing-Extension" class="ui basic green button"><?php esc_html_e( 'Billing Dashboard', 'mainwp-billing-extension' ); ?></a>
+				<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main" class="ui basic green button"><?php esc_html_e( 'Billing Dashboard', 'mainwp-billing-extension' ); ?></a>
 			</div>
 		</div>
 		<?php
@@ -142,7 +142,7 @@ class MainWP_Billing_Widget {
         <div class="ui divider" style="margin-left:-1em;margin-right:-1em;"></div>
         <div class="ui two columns grid">
             <div class="left aligned column">
-                <a href="admin.php?page=Extensions-Mainwp-Billing-Extension" class="ui basic green button"><?php esc_html_e( 'Billing Dashboard', 'mainwp-billing-extension' ); ?></a>
+                <a href="admin.php?page=Extensions-Billing-For-Mainwp-Main" class="ui basic green button"><?php esc_html_e( 'Billing Dashboard', 'mainwp-billing-extension' ); ?></a>
             </div>
         </div>
 		<?php
