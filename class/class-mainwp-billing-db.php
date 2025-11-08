@@ -83,7 +83,7 @@ class MainWP_Billing_DB {
 			$collate = $wpdb->get_charset_collate();
 			$sql .= "CREATE TABLE {$table_name} (
 				id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-				template_name VARCHAR(255) NOT NULL,
+				template_name VARCHAR(255) NOT,
 				qb_client_name VARCHAR(255) NOT NULL,
 				previous_date DATE NOT NULL,
 				next_date DATE NOT NULL,
@@ -100,6 +100,25 @@ class MainWP_Billing_DB {
 		dbDelta( $sql );
 
 		update_option( 'mainwp_billing_db_version', $version_to_update );
+	}
+
+	/**
+	 * Clears all records from the billing database. (Req #4)
+	 *
+	 * @return true|\WP_Error True on success, WP_Error on failure.
+	 */
+	public function clear_all_data() {
+		$table_records = $this->get_table_name( 'records' );
+		$deleted = $this->wpdb->query( "TRUNCATE TABLE {$table_records}" );
+
+		if ( false === $deleted ) {
+			return new \WP_Error( 'db_error', esc_html__( 'Failed to clear billing records.', 'mainwp-billing-extension' ) );
+		}
+
+		// Clear the last imported timestamp as well
+		MainWP_Billing_Utility::get_instance()->update_setting( 'last_imported_timestamp', 0 );
+
+		return true;
 	}
 
 	/**
@@ -132,22 +151,37 @@ class MainWP_Billing_DB {
 		$table_sites   = $this->wpdb->prefix . 'mainwp_wp';
 
 		$where = ' WHERE 1=1 ';
-		$sql   = "SELECT rec.*, site.name AS site_name, site.url AS site_url
+		$sql   = "SELECT rec.*, site.name AS site_name, site.url AS site_url, site.client_id AS mainwp_client_id
 				FROM {$table_records} rec
 				LEFT JOIN {$table_sites} site ON rec.mainwp_site_id = site.id";
 
 		$sql_params = array();
 
-		// Filter by QuickBooks Client Name
+		// Filter by QuickBooks Client Name (for Mapping tab)
 		if ( isset( $params['qb_client_name'] ) && ! empty( $params['qb_client_name'] ) ) {
 			$where .= ' AND rec.qb_client_name = %s ';
 			$sql_params[] = $params['qb_client_name'];
 		}
 
-		// Filter by MainWP Site ID (used for individual site page)
+		// Filter by MainWP Site ID (for Individual site page)
 		if ( isset( $params['mainwp_site_id'] ) && $params['mainwp_site_id'] > 0 ) {
 			$where .= ' AND rec.mainwp_site_id = %d ';
 			$sql_params[] = intval( $params['mainwp_site_id'] );
+		}
+
+		// Filter by Mapped Status (for Dashboard tab)
+		if ( isset( $params['is_mapped'] ) ) {
+			if ( $params['is_mapped'] ) {
+				$where .= ' AND rec.mainwp_site_id > 0 ';
+			} else {
+				$where .= ' AND rec.mainwp_site_id = 0 ';
+			}
+		}
+
+		// Filter by MainWP Client ID (for Dashboard tab - Req #2)
+		if ( isset( $params['mainwp_client_id'] ) && $params['mainwp_client_id'] > 0 ) {
+			$where .= ' AND site.client_id = %d ';
+			$sql_params[] = intval( $params['mainwp_client_id'] );
 		}
 
 		$sql .= $where . ' ORDER BY rec.qb_client_name ASC';
@@ -203,7 +237,6 @@ class MainWP_Billing_DB {
 			return new \WP_Error( 'file_not_found', esc_html__( 'Uploaded file not found.', 'mainwp-billing-extension' ) );
 		}
 
-		// Use the fgetcsv function with explicit parameters: delimiter (comma), no enclosure, no escape character.
 		$handle = fopen( $file_path, 'r' );
 		if ( false === $handle ) {
 			return new \WP_Error( 'file_open_failed', esc_html__( 'Failed to open the uploaded file.', 'mainwp-billing-extension' ) );
@@ -257,10 +290,9 @@ class MainWP_Billing_DB {
 		}
 
 		// Optimization: get all existing sites for auto-mapping logic (Req #4).
-		$mainwp_sites = MainWP_Billing_Utility::get_websites(); // Returns array of site objects.
+		$mainwp_sites = MainWP_Billing_Utility::get_websites();
 		$site_names = array();
 		foreach ( $mainwp_sites as $site ) {
-			// FIX: Ensure $site is an object before accessing properties.
 			$site = (object) $site;
 			$site_names[ strtolower( $site->name ) ] = $site->id;
 			$site_names[ strtolower( MainWP_Billing_Utility::get_nice_url( $site->url, false ) ) ] = $site->id;
