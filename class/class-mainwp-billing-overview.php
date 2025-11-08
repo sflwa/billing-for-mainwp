@@ -296,7 +296,7 @@ class MainWP_Billing_Overview {
                         <input type="file" name="billing_csv_file" id="billing_csv_file" accept=".csv" required>
                     </div>
                     <p class="ui basic message">
-                        <?php esc_html_e( 'The CSV must contain the columns: "Transaction Type", "Template Name", "Previous date", "Next Date", "Name", "Memo/Description", "Account", and "Amount".', 'mainwp-billing-extension' ); ?>
+                        <?php esc_html_e( 'The CSV must contain the columns: "Template Name", "Previous date", "Next Date", "Name", and "Amount".', 'mainwp-billing-extension' ); ?>
                     </p>
                 </div>
 
