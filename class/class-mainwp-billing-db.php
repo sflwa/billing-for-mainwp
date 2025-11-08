@@ -1,20 +1,20 @@
 <?php
 /**
- * MainWP Development DB
+ * MainWP Billing DB
  *
  * This class handles the DB process.
  *
  * @package MainWP/Extensions
  */
 
- namespace MainWP\Extensions\Development;
+ namespace MainWP\Extensions\Billing;
 
  /**
-  * Class MainWP_Development_DB
+  * Class MainWP_Billing_DB
   *
   * @package MainWP/Extensions
   */
-class MainWP_Development_DB {
+class MainWP_Billing_DB {
 
 	/**
 	 * @var self|null The singleton instance of the class.
@@ -39,7 +39,7 @@ class MainWP_Development_DB {
 	}
 
 	/**
-	 * MainWP_Development_DB constructor.
+	 * MainWP_Billing_DB constructor.
 	 *
 	 * @return void
 	 */
