@@ -219,7 +219,7 @@ class MainWP_Billing_DB {
 		$current_import_time = time();
 		$processed_template_names = array();
 
-		// Expected core columns (Req #2). Transaction Type, Memo/Description, and Account are excluded.
+		// Expected core columns (Req #2).
 		$expected_headers = array(
 			'Template Name',
 			'Previous date',
@@ -260,8 +260,10 @@ class MainWP_Billing_DB {
 		$mainwp_sites = MainWP_Billing_Utility::get_websites(); // Returns array of site objects.
 		$site_names = array();
 		foreach ( $mainwp_sites as $site ) {
+			// FIX: Ensure $site is an object before accessing properties.
+			$site = (object) $site;
 			$site_names[ strtolower( $site->name ) ] = $site->id;
-			$site_names[ strtolower( MainWP_Billing_Utility::get_nice_url( $site->url, false ) ) ] = $site->id; // Normalized URL.
+			$site_names[ strtolower( MainWP_Billing_Utility::get_nice_url( $site->url, false ) ) ] = $site->id;
 		}
 
 
