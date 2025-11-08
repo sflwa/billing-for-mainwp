@@ -1,41 +1,41 @@
 <?php
 /*
-  Plugin Name: MainWP Development Extension
+  Plugin Name: MainWP Billing Extension
   Plugin URI: https://mainwp.com
-  Description: MainWP Development Extension simplifies your Development by providing you with a place to start when developing your next MainWP Extension.
+  Description: MainWP Billing Extension manages recurring client transactions and syncs them with MainWP child sites.
   Version: 4.0
   Author: MainWP
   Author URI: https://mainwp.com
-  Documentation URI: https://kb.mainwp.com/docs/development-extension/
+  Documentation URI: https://kb.mainwp.com/docs/billing-extension/
  */
 
 
-namespace MainWP\Extensions\Development;
+namespace MainWP\Extensions\Billing;
 
-if ( ! defined( 'MAINWP_DEVELOPMENT_PLUGIN_FILE' ) ) {
-	define( 'MAINWP_DEVELOPMENT_PLUGIN_FILE', __FILE__ );
+if ( ! defined( 'MAINWP_BILLING_PLUGIN_FILE' ) ) {
+	define( 'MAINWP_BILLING_PLUGIN_FILE', __FILE__ );
 }
 
-if ( ! defined( 'MAINWP_DEVELOPMENT_PLUGIN_DIR' ) ) {
-	define( 'MAINWP_DEVELOPMENT_PLUGIN_DIR', plugin_dir_path( MAINWP_DEVELOPMENT_PLUGIN_FILE ) );
+if ( ! defined( 'MAINWP_BILLING_PLUGIN_DIR' ) ) {
+	define( 'MAINWP_BILLING_PLUGIN_DIR', plugin_dir_path( MAINWP_BILLING_PLUGIN_FILE ) );
 }
 
-if ( ! defined( 'MAINWP_DEVELOPMENT_PLUGIN_URL' ) ) {
-	define( 'MAINWP_DEVELOPMENT_PLUGIN_URL', plugin_dir_url( MAINWP_DEVELOPMENT_PLUGIN_FILE ) );
+if ( ! defined( 'MAINWP_BILLING_PLUGIN_URL' ) ) {
+	define( 'MAINWP_BILLING_PLUGIN_URL', plugin_dir_url( MAINWP_BILLING_PLUGIN_FILE ) );
 }
 
-if ( ! defined( 'MAINWP_DEVELOPMENT_LOG_PRIORITY' ) ) {
-	define( 'MAINWP_DEVELOPMENT_LOG_PRIORITY', 2024011 );
+if ( ! defined( 'MAINWP_BILLING_LOG_PRIORITY' ) ) {
+	define( 'MAINWP_BILLING_LOG_PRIORITY', 2024011 );
 }
 
-class MainWP_Development_Extension_Activator {
+class MainWP_Billing_Extension_Activator {
 
 	protected $mainwpMainActivated = false;
 	protected $childEnabled        = false;
 	protected $childKey            = false;
 	protected $childFile;
-	protected $plugin_handle    = 'mainwp-development-extension';
-	protected $product_id       = 'MainWP Development Extension';
+	protected $plugin_handle    = 'mainwp-billing-extension';
+	protected $product_id       = 'MainWP Billing Extension';
 	protected $software_version = '4.0';
 
 	public function __construct() {
@@ -75,25 +75,25 @@ class MainWP_Development_Extension_Activator {
 	 * This function will go through the /class folder and require all of the files.
 	 * The class name is passed in by spl_autoload_register.
 	 * It is the name of the class that is being instantiated.
-	 * For example, if you do new MainWP_Development_Overview, then
-	 * $class_name will be MainWP_Development_Overview.
+	 * For example, if you do new MainWP_Billing_Overview, then
+	 * $class_name will be MainWP_Billing_Overview.
 	 *
 	 * The class name is also used to determine the file name.
-	 * For example, MainWP_Development_Overview is in the file
-	 * class/class-mainwp-development-overview.php.
+	 * For example, MainWP_Billing_Overview is in the file
+	 * class/class-mainwp-billing-overview.php.
 	 *
 	 * @param string $class_name The name of the class to load.
 	 */
 	public function autoload( $class_name ) {
 
-		if ( 0 === strpos( $class_name, 'MainWP\Extensions\Development' ) ) {
-			// trim the namespace prefix: MainWP\Extensions\Development\.
-			$class_name = str_replace( 'MainWP\Extensions\Development\\', '', $class_name );
+		if ( 0 === strpos( $class_name, 'MainWP\Extensions\Billing' ) ) {
+			// trim the namespace prefix: MainWP\Extensions\Billing\.
+			$class_name = str_replace( 'MainWP\Extensions\Billing\\', '', $class_name );
 		} else {
 			return;
 		}
 
-		if ( 0 !== strpos( $class_name, 'MainWP_Development' ) ) {
+		if ( 0 !== strpos( $class_name, 'MainWP_Billing' ) ) {
 			return;
 		}
 		$class_name = str_replace( '_', '-', strtolower( $class_name ) );
@@ -128,7 +128,7 @@ class MainWP_Development_Extension_Activator {
 	 */
 	public function settings() {
 		do_action( 'mainwp_pageheader_extensions', __FILE__ );
-		MainWP_Development_Overview::get_instance()->render_tabs();
+		MainWP_Billing_Overview::get_instance()->render_tabs();
 		do_action( 'mainwp_pagefooter_extensions', __FILE__ );
 	}
 
@@ -142,15 +142,15 @@ class MainWP_Development_Extension_Activator {
 		$this->childEnabled        = apply_filters( 'mainwp_extension_enabled_check', __FILE__ );
 		$this->childKey            = $this->childEnabled['key'];
 
-		if ( function_exists( 'mainwp_current_user_can' ) && ! mainwp_current_user_can( 'extension', 'mainwp-development-extension' ) ) {
+		if ( function_exists( 'mainwp_current_user_can' ) && ! mainwp_current_user_can( 'extension', 'mainwp-billing-extension' ) ) {
 			return;
 		}
 
 		add_filter( 'mainwp_getsubpages_sites', array( &$this, 'hook_managesites_subpage' ), 10, 1 );
 		add_filter( 'mainwp_getmetaboxes', array( &$this, 'hook_get_metaboxes' ) );
-		add_filter( 'mainwp_widgets_screen_options', array( MainWP_Development_Admin::get_instance(), 'widgets_screen_options' ), 10, 1 );
+		add_filter( 'mainwp_widgets_screen_options', array( MainWP_Billing_Admin::get_instance(), 'widgets_screen_options' ), 10, 1 );
 
-		MainWP_Development_Admin::get_instance();
+		MainWP_Billing_Admin::get_instance();
 	}
 
 	/**
@@ -159,7 +159,7 @@ class MainWP_Development_Extension_Activator {
 	 * @return mixed $inputs.
 	 */
 	public function hook_log_specific( $inputs ) {
-		$inputs[ MAINWP_DEVELOPMENT_LOG_PRIORITY ] = __( 'Development logs', 'mainwp-pro-reports-extension' );
+		$inputs[ MAINWP_BILLING_LOG_PRIORITY ] = __( 'Billing logs', 'mainwp-billing-extension' );
 		return $inputs;
 	}
 	public function get_child_key() {
@@ -178,7 +178,7 @@ class MainWP_Development_Extension_Activator {
 	public function admin_notices() {
 		global $current_screen;
 		if ( $current_screen->parent_base == 'plugins' && $this->mainwpMainActivated == false ) {
-			echo '<div class="error"><p>' . sprintf( esc_html__( 'MainWP Development Extension requires %1$sMainWP Dashboard Plugin%2$s to be activated in order to work. Please install and activate %3$sMainWP Dashboard Plugin%4$s first.' ), '<a href="http://mainwp.com/" target="_blank">', '</a>', '<a href="http://mainwp.com/" target="_blank">', '</a>' ) . '</p></div>';
+			echo '<div class="error"><p>' . sprintf( esc_html__( 'MainWP Billing Extension requires %1$sMainWP Dashboard Plugin%2$s to be activated in order to work. Please install and activate %3$sMainWP Dashboard Plugin%4$s first.' ), '<a href="http://mainwp.com/" target="_blank">', '</a>', '<a href="http://mainwp.com/" target="_blank">', '</a>' ) . '</p></div>';
 		}
 	}
 
@@ -220,11 +220,11 @@ class MainWP_Development_Extension_Activator {
 		}
 
 		$metaboxes[] = array(
-			'id'            => 'development-widget',
+			'id'            => 'billing-widget',
 			'plugin'        => $this->childFile,
 			'key'           => $this->childKey,
-			'metabox_title' => __( 'Development', 'mainwp-development-extension' ),
-			'callback'      => array( MainWP_Development_Widget::get_instance(), 'render_metabox' ),
+			'metabox_title' => __( 'Billing', 'mainwp-billing-extension' ),
+			'callback'      => array( MainWP_Billing_Widget::get_instance(), 'render_metabox' ),
 		);
 
 
@@ -241,11 +241,11 @@ class MainWP_Development_Extension_Activator {
 	 */
 	public function hook_managesites_subpage( $subPage ) {
 		$subPage[] = array(
-			'title'            => __( 'Development Individual', 'mainwp-development-extension' ),
-			'slug'             => 'DevelopmentIndividual',
+			'title'            => __( 'Billing Individual', 'mainwp-billing-extension' ),
+			'slug'             => 'BillingIndividual',
 			'sitetab'          => true,
 			'menu_hidden'      => true,
-			'callback'         => array( MainWP_Development_Individual::get_instance(), 'render_individual_page' ),
+			'callback'         => array( MainWP_Billing_Individual::get_instance(), 'render_individual_page' ),
 		);
 		return $subPage;
 	}
@@ -253,5 +253,5 @@ class MainWP_Development_Extension_Activator {
 
 }
 
-global $mainWPDevelopmentExtensionActivator;
-$mainWPDevelopmentExtensionActivator = new MainWP_Development_Extension_Activator();
+global $mainWPBillingExtensionActivator;
+$mainWPBillingExtensionActivator = new MainWP_Billing_Extension_Activator();
