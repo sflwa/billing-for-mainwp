@@ -1,20 +1,20 @@
 <?php
 /**
- * MainWP Development Individual
+ * MainWP Billing Individual
  *
  * This class handles the Individual process.
  *
  * @package MainWP/Extensions
  */
 
- namespace MainWP\Extensions\Development;
+ namespace MainWP\Extensions\Billing;
 
  /**
-  * Class MainWP_Development_Individual
+  * Class MainWP_Billing_Individual
   *
   * @package MainWP/Extensions
   */
-class MainWP_Development_Individual
+class MainWP_Billing_Individual
 {
 	/**
 	 * @var self|null The singleton instance of the class.
@@ -35,7 +35,7 @@ class MainWP_Development_Individual
 	}
 
 	/**
-	 * MainWP_Development_Individual constructor.
+	 * MainWP_Billing_Individual constructor.
      *
      * @return void
 	 */
@@ -61,7 +61,7 @@ class MainWP_Development_Individual
 	 */
 	public function render_individual_page()
 	{
-		do_action( 'mainwp_pageheader_sites', 'DevelopmentIndividual' );
+		do_action( 'mainwp_pageheader_sites', 'BillingIndividual' );
 		?>
         <div class="ui message">
             <div class="ui placeholder segment">
@@ -72,6 +72,6 @@ class MainWP_Development_Individual
             </div>
         </div>
 		<?php
-		do_action( 'mainwp_pagefooter_sites', 'DevelopmentIndividual' );
+		do_action( 'mainwp_pagefooter_sites', 'BillingIndividual' );
 	}
 }
