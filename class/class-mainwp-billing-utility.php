@@ -1,23 +1,23 @@
 <?php
 /**
- * MainWP Development Utility
+ * MainWP Billing Utility
  *
  * This class handles the Utility process.
  *
  * @package MainWP/Extensions
  */
 
- namespace MainWP\Extensions\Development;
+ namespace MainWP\Extensions\Billing;
 
  /**
-  * Class MainWP_Development_Utility
+  * Class MainWP_Billing_Utility
   *
   * @package MainWP/Extensions
   */
-class MainWP_Development_Utility {
+class MainWP_Billing_Utility {
 
 
-	private $option_handle = 'mainwp_development_settings';
+	private $option_handle = 'mainwp_billing_settings';
 
 	private $option = null;
 
@@ -147,8 +147,8 @@ class MainWP_Development_Utility {
 	 * @return array Child sites array.
 	 */
 	public static function get_websites( $site_id = null ) {
-		global $mainWPDevelopmentExtensionActivator;
-		return apply_filters( 'mainwp_getsites', $mainWPDevelopmentExtensionActivator->get_child_file(), $mainWPDevelopmentExtensionActivator->get_child_key(), $site_id, false );
+		global $mainWPBillingExtensionActivator;
+		return apply_filters( 'mainwp_getsites', $mainWPBillingExtensionActivator->get_child_file(), $mainWPBillingExtensionActivator->get_child_key(), $site_id, false );
 	}
 
 	/**
@@ -171,8 +171,8 @@ class MainWP_Development_Utility {
 		}
 
 		if ( ! empty( $site_ids ) || ! empty( $group_ids ) ) {
-			global $mainWPDevelopmentExtensionActivator;
-			return apply_filters( 'mainwp_getdbsites', $mainWPDevelopmentExtensionActivator->get_child_file(), $mainWPDevelopmentExtensionActivator->get_child_key(), $site_ids, $group_ids );
+			global $mainWPBillingExtensionActivator;
+			return apply_filters( 'mainwp_getdbsites', $mainWPBillingExtensionActivator->get_child_file(), $mainWPBillingExtensionActivator->get_child_key(), $site_ids, $group_ids );
 		}
 		return false;
 	}
@@ -181,7 +181,7 @@ class MainWP_Development_Utility {
 	 * Method verify_action_nonce(es).
 	 */
 	public static function verify_action_nonce() {
-		if ( isset( $_GET['_nonce_development'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_nonce_development'] ) ), 'development_nonce' ) ) {
+		if ( isset( $_GET['_nonce_billing'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_nonce_billing'] ) ), 'billing_nonce' ) ) {
 			return true;
 		}
 		return false;
@@ -285,7 +285,7 @@ class MainWP_Development_Utility {
 				$log_color = 2;
 			}
 		}
-		do_action( 'mainwp_log_action', 'Development :: ' . $message, MAINWP_DEVELOPMENT_LOG_PRIORITY, $log_color );
+		do_action( 'mainwp_log_action', 'Billing :: ' . $message, MAINWP_BILLING_LOG_PRIORITY, $log_color );
 	}
 
 }
