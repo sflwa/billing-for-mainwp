@@ -1,20 +1,20 @@
 <?php
 /**
- * MainWP Development Widget
+ * MainWP Billing Widget
  *
  * This class handles the Widget process.
  *
  * @package MainWP/Extensions
  */
 
- namespace MainWP\Extensions\Development;
+ namespace MainWP\Extensions\Billing;
 
  /**
-  * Class MainWP_Development_Widget
+  * Class MainWP_Billing_Widget
   *
   * @package MainWP/Extensions
   */
-class MainWP_Development_Widget {
+class MainWP_Billing_Widget {
 
 	private static $instance = null;
 
@@ -53,8 +53,8 @@ class MainWP_Development_Widget {
 		<div class="ui grid">
 			<div class="twelve wide column">
 				<h3 class="ui header handle-drag">
-					<?php esc_html_e( 'Development Overview Widget', 'mainwp-development-extension' ); ?>
-					<div class="sub header"><?php esc_html_e( 'This is the Development Overview Widget.', 'mainwp-development-extension' ); ?></div>
+					<?php esc_html_e( 'Billing Overview Widget', 'mainwp-billing-extension' ); ?>
+					<div class="sub header"><?php esc_html_e( 'This is the Billing Overview Widget.', 'mainwp-billing-extension' ); ?></div>
 				</h3>
 			</div>
 		</div>
@@ -74,7 +74,7 @@ class MainWP_Development_Widget {
 		<div class="ui divider" style="margin-left:-1em;margin-right:-1em;"></div>
 		<div class="ui two columns grid">
 			<div class="left aligned column">
-				<a href="admin.php?page=Extensions-Mainwp-Development-Extension" class="ui basic green button"><?php esc_html_e( 'Development Dashboard', 'mainwp-development-extension' ); ?></a>
+				<a href="admin.php?page=Extensions-Mainwp-Billing-Extension" class="ui basic green button"><?php esc_html_e( 'Billing Dashboard', 'mainwp-billing-extension' ); ?></a>
 			</div>
 		</div>
 		<?php
@@ -95,8 +95,8 @@ class MainWP_Development_Widget {
         <div class="ui grid">
             <div class="twelve wide column">
                 <h3 class="ui header handle-drag">
-					<?php echo __( 'Development Individual Widget', 'mainwp-development-extension' ); ?>
-                    <div class="sub header"><?php echo __( 'This is the Development Individual Widget.', 'mainwp-development-extension' ); ?></div>
+					<?php echo __( 'Billing Individual Widget', 'mainwp-billing-extension' ); ?>
+                    <div class="sub header"><?php echo __( 'This is the Billing Individual Widget.', 'mainwp-billing-extension' ); ?></div>
                 </h3>
             </div>
         </div>
@@ -106,17 +106,12 @@ class MainWP_Development_Widget {
                 <div class="line"></div>
                 <div class="line"></div>
             </div>
-            <div class="paragraph">
-                <div class="line"></div>
-                <div class="line"></div>
-                <div class="line"></div>
-            </div>
         </div>
         <div class="ui hidden divider"></div>
         <div class="ui divider" style="margin-left:-1em;margin-right:-1em;"></div>
         <div class="ui two columns grid">
             <div class="left aligned column">
-                <a href="admin.php?page=Extensions-Mainwp-Development-Extension" class="ui basic green button"><?php esc_html_e( 'Development Dashboard', 'mainwp-development-extension' ); ?></a>
+                <a href="admin.php?page=Extensions-Mainwp-Billing-Extension" class="ui basic green button"><?php esc_html_e( 'Billing Dashboard', 'mainwp-billing-extension' ); ?></a>
             </div>
         </div>
 		<?php
