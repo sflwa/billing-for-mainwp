@@ -59,6 +59,8 @@ class MainWP_Billing_Overview {
 	 * @return void
 	 */
 	public function handle_settings_post() {
+		$utility = MainWP_Billing_Utility::get_instance(); // FIX: Get the instance
+
 		// Only proceed if the import button was clicked
 		if ( isset( $_POST['submit_import_billing_data'] ) ) {
 
@@ -66,7 +68,7 @@ class MainWP_Billing_Overview {
 			if ( ! isset( $_POST['mainwp_billing_settings_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['mainwp_billing_settings_nonce'] ), 'mainwp_billing_settings' ) ) {
 				MainWP_Billing_Utility::log_info( 'Import failed: Nonce check failed.' );
 				// translators: %s: message.
-				MainWP_Billing_Utility::update_setting( 'import_message', sprintf( esc_html__( 'Import failed: %s', 'mainwp-billing-extension' ), esc_html__( 'Security check failed.', 'mainwp-billing-extension' ) ) );
+				$utility->update_setting( 'import_message', sprintf( esc_html__( 'Import failed: %s', 'mainwp-billing-extension' ), esc_html__( 'Security check failed.', 'mainwp-billing-extension' ) ) ); // FIX: Use $utility instance
 				return;
 			}
 
@@ -74,7 +76,7 @@ class MainWP_Billing_Overview {
 			if ( empty( $_FILES['billing_csv_file']['tmp_name'] ) ) {
 				MainWP_Billing_Utility::log_info( 'Import failed: No file uploaded.' );
 				// translators: %s: message.
-				MainWP_Billing_Utility::update_setting( 'import_message', sprintf( esc_html__( 'Import failed: %s', 'mainwp-billing-extension' ), esc_html__( 'No file selected.', 'mainwp-billing-extension' ) ) );
+				$utility->update_setting( 'import_message', sprintf( esc_html__( 'Import failed: %s', 'mainwp-billing-extension' ), esc_html__( 'No file selected.', 'mainwp-billing-extension' ) ) ); // FIX: Use $utility instance
 				return;
 			}
 
@@ -85,7 +87,7 @@ class MainWP_Billing_Overview {
 			if ( 'csv' !== strtolower( $file_ext ) ) {
 				MainWP_Billing_Utility::log_info( 'Import failed: Invalid file type.' );
 				// translators: %s: message.
-				MainWP_Billing_Utility::update_setting( 'import_message', sprintf( esc_html__( 'Import failed: %s', 'mainwp-billing-extension' ), esc_html__( 'Please upload a CSV file.', 'mainwp-billing-extension' ) ) );
+				$utility->update_setting( 'import_message', sprintf( esc_html__( 'Import failed: %s', 'mainwp-billing-extension' ), esc_html__( 'Please upload a CSV file.', 'mainwp-billing-extension' ) ) ); // FIX: Use $utility instance
 				return;
 			}
 
@@ -95,7 +97,7 @@ class MainWP_Billing_Overview {
 			// Handle the result of the import
 			if ( is_wp_error( $result ) ) {
 				$message = $result->get_error_message();
-				MainWP_Billing_Utility::update_setting( 'import_message', '<div class="ui red message">' . sprintf( esc_html__( 'Import failed: %s', 'mainwp-billing-extension' ), $message ) . '</div>' );
+				$utility->update_setting( 'import_message', '<div class="ui red message">' . sprintf( esc_html__( 'Import failed: %s', 'mainwp-billing-extension' ), $message ) . '</div>' ); // FIX: Use $utility instance
 				MainWP_Billing_Utility::log_info( 'Import failed: ' . $message );
 			} else {
 				$msg = sprintf( esc_html__( 'Import successful! Records added: %d, Updated: %d, Removed: %d, Skipped: %d', 'mainwp-billing-extension' ),
@@ -104,8 +106,8 @@ class MainWP_Billing_Overview {
 					( isset( $result['removed'] ) ? intval( $result['removed'] ) : 0 ),
 					( isset( $result['skipped'] ) ? intval( $result['skipped'] ) : 0 )
 				);
-				MainWP_Billing_Utility::update_setting( 'import_message', '<div class="ui green message">' . $msg . '</div>' );
-				MainWP_Billing_Utility::update_setting( 'last_imported_timestamp', time() ); // Req #9
+				$utility->update_setting( 'import_message', '<div class="ui green message">' . $msg . '</div>' ); // FIX: Use $utility instance
+				$utility->update_setting( 'last_imported_timestamp', time() ); // FIX: Use $utility instance
 				MainWP_Billing_Utility::log_info( 'Import successful. ' . $msg );
 			}
 		}
@@ -269,11 +271,12 @@ class MainWP_Billing_Overview {
      * @return void
      */
     public static function render_settings() {
-        $utility = MainWP_Billing_Utility::get_instance();
-        $last_imported = $utility->get_setting( 'last_imported_timestamp' );
-        $import_message = $utility->get_setting( 'import_message' );
+        $utility = MainWP_Billing_Utility::get_instance(); // FIX: Get the instance
+
+        $last_imported = $utility->get_setting( 'last_imported_timestamp' ); // FIX: Use $utility instance
+        $import_message = $utility->get_setting( 'import_message' ); // FIX: Use $utility instance
         // Clear message after display.
-        $utility->update_setting( 'import_message', '' );
+        $utility->update_setting( 'import_message', '' ); // FIX: Use $utility instance
 
         ?>
         <div class="ui segment">
@@ -307,7 +310,7 @@ class MainWP_Billing_Overview {
                 <strong><?php esc_html_e( 'Last Imported Date:', 'mainwp-billing-extension' ); ?></strong>
                 <?php
                 if ( ! empty( $last_imported ) ) {
-                    echo MainWP_Billing_Utility::format_timestamp( $last_imported ); // Req #9
+                    echo MainWP_Billing_Utility::format_timestamp( $last_imported );
                 } else {
                     esc_html_e( 'Never imported.', 'mainwp-billing-extension' );
                 }
