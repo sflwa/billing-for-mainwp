@@ -103,6 +103,24 @@ class MainWP_Billing_DB {
 	}
 
 	/**
+	 * Get all unique MainWP site IDs that have a billing record assigned.
+	 *
+	 * @return array Array of integers (mainwp_site_id).
+	 */
+	public function get_all_mapped_site_ids() {
+		$table_name = $this->get_table_name( 'records' );
+		// Only get IDs > 0, as 0 means unmapped.
+		$mapped_ids = $this->wpdb->get_col( "SELECT DISTINCT mainwp_site_id FROM {$table_name} WHERE mainwp_site_id > 0" );
+
+		if ( empty( $mapped_ids ) ) {
+			return array();
+		}
+
+		// Ensure all IDs are integers.
+		return array_map( 'intval', $mapped_ids );
+	}
+
+	/**
 	 * Imports the billing data from the uploaded QuickBooks CSV file.
 	 *
 	 * @param string $file_path The temporary path to the uploaded CSV file.
