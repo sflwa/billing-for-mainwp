@@ -1,20 +1,20 @@
 <?php
 /**
- * MainWP Development Overview
+ * MainWP Billing Overview
  *
  * This class handles the Overview process.
  *
  * @package MainWP/Extensions
  */
 
- namespace MainWP\Extensions\Development;
+ namespace MainWP\Extensions\Billing;
 
  /**
-  * Class MainWP_Development_Overview
+  * Class MainWP_Billing_Overview
   *
   * @package MainWP/Extensions
   */
-class MainWP_Development_Overview {
+class MainWP_Billing_Overview {
 
 	/**
 	 * @var self|null The singleton instance of the class.
@@ -34,7 +34,7 @@ class MainWP_Development_Overview {
 	}
 
 	/**
-	 * MainWP_Development_Overview constructor.
+	 * MainWP_Billing_Overview constructor.
      *
      * @return void
 	 */
@@ -81,9 +81,9 @@ class MainWP_Development_Overview {
 
 		?>
 
-		<div class="ui labeled icon inverted menu mainwp-sub-submenu" id="mainwp-pro-development-menu">
-			<a href="admin.php?page=Extensions-Mainwp-Development-Extension&tab=dashboard" class="item <?php echo ( $current_tab == 'dashboard' ) ? 'active' : ''; ?>"><i class="tasks icon"></i> <?php esc_html_e( 'Dashboard', 'mainwp-development-extension' ); ?></a>
-			<a href="admin.php?page=Extensions-Mainwp-Development-Extension&tab=settings" class="item <?php echo ( $current_tab == 'settings' || $current_tab == '' ) ? 'active' : ''; ?>"><i class="file alternate outline icon"></i> <?php esc_html_e( 'Settings', 'mainwp-development-extension' ); ?></a>
+		<div class="ui labeled icon inverted menu mainwp-sub-submenu" id="mainwp-pro-billing-menu">
+			<a href="admin.php?page=Extensions-Mainwp-Billing-Extension&tab=dashboard" class="item <?php echo ( $current_tab == 'dashboard' ) ? 'active' : ''; ?>"><i class="tasks icon"></i> <?php esc_html_e( 'Dashboard', 'mainwp-billing-extension' ); ?></a>
+			<a href="admin.php?page=Extensions-Mainwp-Billing-Extension&tab=settings" class="item <?php echo ( $current_tab == 'settings' || $current_tab == '' ) ? 'active' : ''; ?>"><i class="file alternate outline icon"></i> <?php esc_html_e( 'Settings', 'mainwp-billing-extension' ); ?></a>
 		</div>
 		<?php
 
