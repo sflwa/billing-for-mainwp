@@ -1,6 +1,6 @@
-# MainWP Development Extension
+# MainWP Billing Extension
 
-MainWP Development Extension is a **starting point** for developers who want to create their own MainWP extensions. This extension provides you with a complete, working example that demonstrates the basic extension structure and architecture already in place.
+MainWP Billing Extension is a **starting point** for developers who want to create their own MainWP extensions. This extension provides you with a complete, working example that demonstrates the basic extension structure and architecture already in place. It is the basis for the Billing for MainWP project.
 
 ## What This Extension Provides
 
@@ -20,11 +20,11 @@ We recommend starting with our comprehensive lesson series that walks you throug
 
 ## Installation
 
-1. Please install plugin "MainWP Dashboard" and activate it before installing MainWP Development Extension plugin (get the MainWP Dashboard plugin from [MainWP.com](https://mainwp.com/)
+1. Please install plugin "MainWP Dashboard" and activate it before installing MainWP Billing Extension plugin (get the MainWP Dashboard plugin from [MainWP.com](https://mainwp.com/)
 2. Download this repository from GitHub
-3. **Important**: After downloading, rename the folder from `mainwp-development-extension-main` to `mainwp-development-extension` (remove the `-main` suffix)
-4. Upload the renamed `mainwp-development-extension` folder to the `/wp-content/plugins/` directory
-5. Activate the MainWP Development Extension plugin through the 'Plugins' menu in WordPress
+3. **Important**: Rename the folder from `mainwp-development-extension` to `mainwp-billing-extension`.
+4. Upload the renamed `mainwp-billing-extension` folder to the `/wp-content/plugins/` directory
+5. Activate the MainWP Billing Extension plugin through the 'Plugins' menu in WordPress
 
 ## Screenshots
 
