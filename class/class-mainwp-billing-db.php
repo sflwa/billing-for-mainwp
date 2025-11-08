@@ -217,7 +217,7 @@ class MainWP_Billing_DB {
 		$current_import_time = time();
 		$processed_template_names = array();
 
-		// Expected columns from QuickBooks (Case sensitive based on user input).
+		// Expected core columns (Req #2). Transaction Type, Memo/Description, and Account are excluded.
 		$expected_headers = array(
 			'Template Name',
 			'Previous date',
@@ -228,7 +228,6 @@ class MainWP_Billing_DB {
 		$header_map = array(); // Will map expected column name to CSV column index.
 
 		// Read the header row using fgetcsv.
-		// We use standard comma delimiter and no enclosure (or a space as placeholder for no enclosure).
 		$header_row = fgetcsv( $handle, 0, ',', ' ' );
 		if ( false === $header_row || null === $header_row ) {
 			fclose( $handle );
