@@ -111,7 +111,7 @@ class MainWP_Billing_Overview {
 	}
 
 	/**
-	 * Render extension page tabs. (Req #3)
+	 * Render extension page tabs.
      *
      * @return void
      */
@@ -146,7 +146,7 @@ class MainWP_Billing_Overview {
 	}
 
     /**
-     * Render the Dashboard page content with Mapped/Unmapped sections and Client Filter. (Req #2)
+     * Render the Dashboard page content with Mapped/Unmapped sections and Client Filter.
      *
      * @return void
      */
@@ -159,10 +159,7 @@ class MainWP_Billing_Overview {
 			$params['mainwp_client_id'] = $client_id_filter;
 		}
 
-		// Get all unique client names for the filter dropdown
-		$all_sites = MainWP_Billing_Utility::get_websites();
-		$client_ids = array_unique( wp_list_pluck( $all_sites, 'client_id' ) );
-		// Need to query client table for names, but for simplicity, we'll just use the IDs for now.
+		// Get all MainWP clients for the filter dropdown
 		$all_clients = MainWP_Billing_DB::get_instance()->get_all_clients();
 
         ?>
@@ -180,13 +177,10 @@ class MainWP_Billing_Overview {
 							<select class="ui dropdown" name="client_id" onchange="this.form.submit()">
 								<option value="0"><?php esc_html_e( 'Show All Clients', 'mainwp-billing-extension' ); ?></option>
 								<?php
-                                // Note: $all_clients needs to be fetched from the client table for full names
-								foreach ( $client_ids as $client_id ) :
-                                    if ( empty( $client_id ) ) continue;
-									$client_name = 'Client ID: ' . $client_id;
+								foreach ( $all_clients as $client ) :
 									?>
-									<option value="<?php echo intval( $client_id ); ?>" <?php selected( $client_id_filter, $client_id ); ?>>
-										<?php echo esc_html( $client_name ); ?>
+									<option value="<?php echo intval( $client->id ); ?>" <?php selected( $client_id_filter, $client->id ); ?>>
+										<?php echo esc_html( $client->name ); ?>
 									</option>
 								<?php endforeach; ?>
 							</select>
@@ -270,7 +264,7 @@ class MainWP_Billing_Overview {
 
 
     /**
-     * Render the Mapping page content with the Manual Mapping form. (Refactor of old dashboard)
+     * Render the Mapping page content with the Manual Mapping form.
      *
      * @return void
      */
@@ -312,7 +306,7 @@ class MainWP_Billing_Overview {
 						<div class="field">
 							<label><?php esc_html_e( 'Filter by QuickBooks Client Name', 'mainwp-billing-extension' ); ?></label>
 							<select class="ui dropdown" name="qb_client" onchange="this.form.submit()">
-								<option value=""><?php esc_html_e( 'Show All Clients', 'mainwp-billing-extension' ); ?></option>
+								<option value="0"><?php esc_html_e( 'Show All Clients', 'mainwp-billing-extension' ); ?></option>
 								<?php foreach ( $unique_qb_clients as $client_name ) : ?>
 									<option value="<?php echo esc_attr( $client_name ); ?>" <?php selected( $qb_client_filter, $client_name ); ?>>
 										<?php echo esc_html( $client_name ); ?>
@@ -388,7 +382,7 @@ class MainWP_Billing_Overview {
     }
 
     /**
-     * Render the Import page content with CSV import form and Clear Data button. (Refactor of old settings)
+     * Render the Import page content with CSV import form and Clear Data button.
      *
      * @return void
      */
