@@ -44,7 +44,19 @@ class MainWP_Billing_DB {
 	 * @return void
 	 */
 	public function __construct() {
+		global $wpdb;
+		$this->wpdb = $wpdb;
+	}
 
+	/**
+	 * Get table name.
+	 *
+	 * @param string $suffix Table suffix.
+	 *
+	 * @return string Table name.
+	 */
+	public function get_table_name( $suffix = '' ) {
+		return $this->wpdb->prefix . 'mainwp_billing_' . $suffix;
 	}
 
 	/**
@@ -62,7 +74,7 @@ class MainWP_Billing_DB {
 			return; // No update needed.
 		}
 
-		$table_name = $wpdb->prefix . 'mainwp_billing_records';
+		$table_name = $this->get_table_name( 'records' );
 
 		$sql = '';
 
@@ -88,5 +100,208 @@ class MainWP_Billing_DB {
 		dbDelta( $sql );
 
 		update_option( 'mainwp_billing_db_version', $version_to_update );
+	}
+
+	/**
+	 * Imports the billing data from the uploaded QuickBooks CSV file.
+	 *
+	 * @param string $file_path The temporary path to the uploaded CSV file.
+	 *
+	 * @return array|\WP_Error Import statistics or WP_Error on failure.
+	 */
+	public function import_billing_csv( $file_path ) {
+		if ( ! file_exists( $file_path ) ) {
+			return new \WP_Error( 'file_not_found', esc_html__( 'Uploaded file not found.', 'mainwp-billing-extension' ) );
+		}
+
+		$handle = fopen( $file_path, 'r' );
+		if ( false === $handle ) {
+			return new \WP_Error( 'file_open_failed', esc_html__( 'Failed to open the uploaded file.', 'mainwp-billing-extension' ) );
+		}
+
+		$table_name = $this->get_table_name( 'records' );
+		$import_stats = array(
+			'added'   => 0,
+			'updated' => 0,
+			'skipped' => 0,
+			'removed' => 0,
+		);
+		$current_import_time = time();
+		$processed_template_names = array();
+
+		// Expected columns from QuickBooks (Case sensitive based on user input).
+		$expected_headers = array(
+			'Template Name',
+			'Previous date',
+			'Next Date',
+			'Name',
+			'Amount',
+		);
+		$header_map = array(); // Will map expected column name to CSV column index.
+
+		// Read the header row.
+		$header_row = fgetcsv( $handle );
+		if ( false === $header_row ) {
+			fclose( $handle );
+			return new \WP_Error( 'empty_file', esc_html__( 'The uploaded file is empty.', 'mainwp-billing-extension' ) );
+		}
+
+		// Map CSV columns to expected columns and validate core fields.
+		foreach ( $expected_headers as $expected_col ) {
+			$index = array_search( $expected_col, $header_row );
+			if ( false === $index ) {
+				// We enforce the core fields based on your requirements.
+				fclose( $handle );
+				return new \WP_Error( 'missing_column', sprintf( esc_html__( 'Missing required column in CSV: %s', 'mainwp-billing-extension' ), $expected_col ) );
+			}
+			$header_map[ $expected_col ] = $index;
+		}
+
+		// Optimization: get all existing sites for auto-mapping logic (Req #4).
+		$mainwp_sites = MainWP_Billing_Utility::get_websites(); // Returns array of site objects.
+		$site_names = array();
+		foreach ( $mainwp_sites as $site ) {
+			$site_names[ strtolower( $site->name ) ] = $site->id;
+			$site_names[ strtolower( MainWP_Billing_Utility::get_nice_url( $site->url, false ) ) ] = $site->id; // Normalized URL.
+		}
+
+
+		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
+			// Skip rows that are too short or empty.
+			if ( count( $data ) < count( $header_row ) ) {
+				continue;
+			}
+
+			// Sanitize and extract core data.
+			$template_name = sanitize_text_field( $data[ $header_map['Template Name'] ] );
+			$qb_client_name = sanitize_text_field( $data[ $header_map['Name'] ] );
+
+			// Skip if core fields are empty.
+			if ( empty( $template_name ) || empty( $qb_client_name ) ) {
+				$import_stats['skipped']++;
+				continue;
+			}
+
+			// Store the name to check for removals later.
+			$processed_template_names[] = $template_name;
+
+			// Convert dates to YYYY-MM-DD format (best effort).
+			$prev_date = date( 'Y-m-d', strtotime( $data[ $header_map['Previous date'] ] ) );
+			$next_date = date( 'Y-m-d', strtotime( $data[ $header_map['Next Date'] ] ) );
+
+			// Sanitize amount.
+			$amount = floatval( preg_replace( '/[^\d\.]/', '', $data[ $header_map['Amount'] ] ) );
+
+
+			// 1. Check if the record already exists using UNIQUE KEY 'template_name' (Req #10).
+			$existing_record = $this->wpdb->get_row( $this->wpdb->prepare( "SELECT id, mainwp_site_id FROM {$table_name} WHERE template_name = %s", $template_name ) );
+
+			$data_to_insert = array(
+				'template_name'   => $template_name,
+				'qb_client_name'  => $qb_client_name,
+				'previous_date'   => $prev_date,
+				'next_date'       => $next_date,
+				'amount'          => $amount,
+				'last_imported'   => $current_import_time,
+			);
+			$data_format = array(
+				'%s', // template_name
+				'%s', // qb_client_name
+				'%s', // previous_date
+				'%s', // next_date
+				'%f', // amount
+				'%d', // last_imported
+			);
+
+			if ( $existing_record ) {
+				// Record exists, UPDATE it (Req #10 - Updates).
+				$mainwp_site_id = intval( $existing_record->mainwp_site_id );
+
+				// Only if site is not mapped (ID is 0), attempt auto-mapping.
+				if ( 0 === $mainwp_site_id ) {
+					$site_id = $this->attempt_auto_map( $qb_client_name, $site_names );
+				} else {
+					// Keep existing mapping (Req #5 - Manual overrides will be stored here).
+					$site_id = $mainwp_site_id;
+				}
+
+				$data_to_insert['mainwp_site_id'] = $site_id;
+				$data_format[] = '%d';
+
+				$updated = $this->wpdb->update(
+					$table_name,
+					$data_to_insert,
+					array( 'id' => $existing_record->id ),
+					$data_format,
+					array( '%d' )
+				);
+
+				if ( false !== $updated && $updated > 0 ) {
+					$import_stats['updated']++;
+				}
+
+			} else {
+				// Record does NOT exist, INSERT it (Req #10 - Additions).
+
+				// Auto-map the site name (Req #4).
+				$site_id = $this->attempt_auto_map( $qb_client_name, $site_names );
+
+				$data_to_insert['mainwp_site_id'] = $site_id;
+				$data_format[] = '%d';
+
+				$inserted = $this->wpdb->insert(
+					$table_name,
+					$data_to_insert,
+					$data_format
+				);
+
+				if ( $inserted ) {
+					$import_stats['added']++;
+				}
+			}
+		}
+		fclose( $handle );
+
+		// 2. Removal Logic (Req #10 - Removals).
+		if ( ! empty( $processed_template_names ) ) {
+			$placeholders = implode( ', ', array_fill( 0, count( $processed_template_names ), '%s' ) );
+			$deleted = $this->wpdb->query( $this->wpdb->prepare(
+				"DELETE FROM {$table_name} WHERE template_name NOT IN ({$placeholders})",
+				$processed_template_names
+			) );
+
+			if ( false !== $deleted ) {
+				$import_stats['removed'] = intval( $deleted );
+			}
+		}
+
+		return $import_stats;
+	}
+
+
+	/**
+	 * Attempts to automatically map a QuickBooks client name to a MainWP site ID.
+	 *
+	 * @param string $qb_client_name The client name from QuickBooks.
+	 * @param array  $site_names Array of lowercased site names/URLs mapped to site IDs.
+	 *
+	 * @return int The MainWP site ID or 0 if no match is found.
+	 */
+	private function attempt_auto_map( $qb_client_name, $site_names ) {
+		$qb_name_lower = strtolower( $qb_client_name );
+
+		// 1. Exact Name Match
+		if ( isset( $site_names[ $qb_name_lower ] ) ) {
+			return $site_names[ $qb_name_lower ];
+		}
+
+		// 2. Contains Match (e.g., "Client Name, Inc." matches "client name")
+		foreach ( $site_names as $site_name_key => $site_id ) {
+			if ( strpos( $qb_name_lower, $site_name_key ) !== false || strpos( $site_name_key, $qb_name_lower ) !== false ) {
+				return $site_id;
+			}
+		}
+
+		return 0; // No match found.
 	}
 }
