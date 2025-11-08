@@ -200,6 +200,8 @@ class MainWP_Billing_DB {
 			return new \WP_Error( 'file_not_found', esc_html__( 'Uploaded file not found.', 'mainwp-billing-extension' ) );
 		}
 
+		// Use the fgetcsv function with explicit parameters: delimiter (comma), no enclosure, no escape character.
+		// The enclosure parameter is set to a single space, as an empty string can cause issues in older PHP versions.
 		$handle = fopen( $file_path, 'r' );
 		if ( false === $handle ) {
 			return new \WP_Error( 'file_open_failed', esc_html__( 'Failed to open the uploaded file.', 'mainwp-billing-extension' ) );
@@ -225,16 +227,26 @@ class MainWP_Billing_DB {
 		);
 		$header_map = array(); // Will map expected column name to CSV column index.
 
-		// Read the header row.
-		$header_row = fgetcsv( $handle );
-		if ( false === $header_row ) {
+		// Read the header row using fgetcsv.
+		// We use standard comma delimiter and no enclosure (or a space as placeholder for no enclosure).
+		$header_row = fgetcsv( $handle, 0, ',', ' ' );
+		if ( false === $header_row || null === $header_row ) {
 			fclose( $handle );
-			return new \WP_Error( 'empty_file', esc_html__( 'The uploaded file is empty.', 'mainwp-billing-extension' ) );
+			return new \WP_Error( 'empty_file', esc_html__( 'The uploaded file is empty or headers could not be read.', 'mainwp-billing-extension' ) );
 		}
+
+		// Normalize the actual headers for robust matching: trim whitespace and convert to lowercase.
+		$normalized_headers = array_map( 'trim', $header_row );
+		$normalized_headers = array_map( 'strtolower', $normalized_headers );
 
 		// Map CSV columns to expected columns and validate core fields.
 		foreach ( $expected_headers as $expected_col ) {
-			$index = array_search( $expected_col, $header_row );
+			// Normalize the expected column name for matching.
+			$normalized_expected_col = strtolower( trim( $expected_col ) );
+
+			// Search the normalized headers for the normalized expected column.
+			$index = array_search( $normalized_expected_col, $normalized_headers );
+
 			if ( false === $index ) {
 				// We enforce the core fields based on your requirements.
 				fclose( $handle );
@@ -252,7 +264,7 @@ class MainWP_Billing_DB {
 		}
 
 
-		while ( ( $data = fgetcsv( $handle ) ) !== false ) {
+		while ( ( $data = fgetcsv( $handle, 0, ',', ' ' ) ) !== false ) {
 			// Skip rows that are too short or empty.
 			if ( count( $data ) < count( $header_row ) ) {
 				continue;
