@@ -1,6 +1,6 @@
 jQuery(document).ready(function ($) {
 
-    // Logic for Manual Mapping on the Dashboard (Req #5)
+    // Logic for Manual Mapping on the Mapping Tab
 
     var mapSite = function(recordId, siteId, button) {
         var ajaxData = {
@@ -25,7 +25,7 @@ jQuery(document).ready(function ($) {
                 button.hide();
 
                 // Update the Mapped Site column (5th cell) with the new site name/link
-                var mappedSiteColumn = row.find('td:eq(4)');
+                var mappedSiteColumn = row.find('td:eq(3)');
                 if (siteId > 0) {
                     var siteLink = 'admin.php?page=managesites&dashboard=' + siteId;
                     mappedSiteColumn.html('<a href="' + siteLink + '" target="_blank">' + newSiteName + '</a>');
@@ -59,7 +59,7 @@ jQuery(document).ready(function ($) {
 
         $select.on('change', function() {
             var selectedId = $(this).val();
-            var originalId = $(this).data('original-value');
+            var originalId = $select.data('original-value');
             var button = $select.siblings('.mainwp-billing-map-button');
 
             if (selectedId != originalId) {
@@ -83,5 +83,43 @@ jQuery(document).ready(function ($) {
 
     // Initialize Semantic UI dropdown
     $('.ui.dropdown').dropdown();
+
+
+    // Logic for Clear All Data Button (Import Tab - Req #4)
+    $('#mainwp-billing-clear-data-button').on('click', function() {
+        if (!confirm('Are you sure you want to permanently delete ALL imported billing data? This action cannot be undone.')) {
+            return;
+        }
+
+        var button = $(this);
+        var messageSpan = $('#mainwp-billing-clear-message');
+
+        button.addClass('loading');
+        messageSpan.hide().removeClass('green red').text('');
+
+        var ajaxData = {
+            action: 'mainwp_billing_clear_data',
+        };
+
+        $.post(ajaxurl, ajaxData, function(response) {
+            button.removeClass('loading');
+            messageSpan.show();
+
+            if (response.success) {
+                messageSpan.addClass('green').text(response.data.message);
+                
+                // Clear the Last Imported Date display
+                button.closest('.ui.segment').find('strong:contains("Last Imported Date:")').next().text('Never imported.');
+
+            } else {
+                messageSpan.addClass('red').text('Error: ' + (response.data.error || 'Failed to clear data.'));
+            }
+
+            setTimeout(function() {
+                messageSpan.fadeOut();
+            }, 5000);
+
+        }, 'json');
+    });
 
 });
