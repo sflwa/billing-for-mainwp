@@ -83,7 +83,7 @@ class MainWP_Billing_DB {
 			$collate = $wpdb->get_charset_collate();
 			$sql .= "CREATE TABLE {$table_name} (
 				id INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-				template_name VARCHAR(255) NOT,
+				template_name VARCHAR(255) NOT NULL,
 				qb_client_name VARCHAR(255) NOT NULL,
 				previous_date DATE NOT NULL,
 				next_date DATE NOT NULL,
@@ -103,7 +103,7 @@ class MainWP_Billing_DB {
 	}
 
 	/**
-	 * Clears all records from the billing database. (Req #4)
+	 * Clears all records from the billing database.
 	 *
 	 * @return true|\WP_Error True on success, WP_Error on failure.
 	 */
@@ -119,6 +119,25 @@ class MainWP_Billing_DB {
 		MainWP_Billing_Utility::get_instance()->update_setting( 'last_imported_timestamp', 0 );
 
 		return true;
+	}
+
+	/**
+	 * Retrieve all MainWP clients.
+	 *
+	 * @return array Array of client objects (id, name).
+	 */
+	public function get_all_clients() {
+		$table_clients = $this->wpdb->prefix . 'mainwp_clients';
+
+        // Check if the client table exists first.
+        if( $this->wpdb->get_var( "SHOW TABLES LIKE '{$table_clients}'" ) != $table_clients ) {
+            return array();
+        }
+
+		// Use 'client_id' as 'id' for consistency with site mapping logic
+		$sql = "SELECT client_id AS id, name FROM {$table_clients} ORDER BY name ASC";
+		$results = $this->wpdb->get_results( $sql );
+		return ( is_array( $results ) ) ? $results : array();
 	}
 
 	/**
@@ -180,6 +199,7 @@ class MainWP_Billing_DB {
 
 		// Filter by MainWP Client ID (for Dashboard tab - Req #2)
 		if ( isset( $params['mainwp_client_id'] ) && $params['mainwp_client_id'] > 0 ) {
+			// Note: We need to filter by client_id on the site table join, not the record table.
 			$where .= ' AND site.client_id = %d ';
 			$sql_params[] = intval( $params['mainwp_client_id'] );
 		}
@@ -237,6 +257,7 @@ class MainWP_Billing_DB {
 			return new \WP_Error( 'file_not_found', esc_html__( 'Uploaded file not found.', 'mainwp-billing-extension' ) );
 		}
 
+		// Use the fgetcsv function with explicit parameters: delimiter (comma), no enclosure, no escape character.
 		$handle = fopen( $file_path, 'r' );
 		if ( false === $handle ) {
 			return new \WP_Error( 'file_open_failed', esc_html__( 'Failed to open the uploaded file.', 'mainwp-billing-extension' ) );
