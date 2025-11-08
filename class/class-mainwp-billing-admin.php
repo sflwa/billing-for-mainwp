@@ -80,7 +80,7 @@ class MainWP_Billing_Admin {
 	 * @return void
 	 */
 	public function admin_enqueue_scripts() {
-		if ( isset( $_GET['page'] ) && ( 'Extensions-Mainwp-Billing-Extension' === $_GET['page'] || 'ManageSitesBillingIndividual' === $_GET['page'] || ( 'managesites' === $_GET['page'] && isset( $_GET['dashboard'] ) ) ) ) {
+		if ( isset( $_GET['page'] ) && ( 'Extensions-Billing-For-Mainwp-Main' === $_GET['page'] || 'ManageSitesBillingIndividual' === $_GET['page'] || ( 'managesites' === $_GET['page'] && isset( $_GET['dashboard'] ) ) ) ) {
 			wp_enqueue_style( 'mainwp-billing-extension', MAINWP_BILLING_PLUGIN_URL . 'css/mainwp-billing-extension.css', array(), $this->version );
 			wp_enqueue_script( 'mainwp-billing-extension', MAINWP_BILLING_PLUGIN_URL . 'js/mainwp-billing-extension.js', array(), $this->version, true );
 		}
