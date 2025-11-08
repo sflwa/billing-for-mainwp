@@ -138,43 +138,32 @@ class MainWP_Billing_Utility {
 	}
 
 	/**
-	 * Get Websites
+	 * Get Websites via direct DB query. (Req #1 Fix)
 	 *
-	 * Gets all child sites through the 'mainwp_getsites' filter.
+	 * Gets all child sites from the mainwp_wp table.
 	 *
 	 * @param array|null $site_id  Child sites ID.
 	 *
-	 * @return array Child sites array.
+	 * @return array Child sites array (objects).
 	 */
 	public static function get_websites( $site_id = null ) {
-		global $mainWPBillingExtensionActivator;
-		return apply_filters( 'mainwp_getsites', $mainWPBillingExtensionActivator->get_child_file(), $mainWPBillingExtensionActivator->get_child_key(), $site_id, false );
-	}
+		global $wpdb;
+		$table_sites = $wpdb->prefix . 'mainwp_wp';
+		$where = '';
+		$params = array();
 
-	/**
-	 * Get Websites
-	 *
-	 * Gets all child sites through the 'mainwp_getsites' filter.
-	 *
-	 * @param array $site_ids  Child sites IDs.
-	 * @param array $group_ids Groups IDs.
-	 *
-	 * @return array Child sites array.
-	 */
-	public static function get_db_sites( $site_ids, $group_ids = array() ) {
-		if ( ! is_array( $site_ids ) ) {
-			$site_ids = array();
+		if ( null !== $site_id ) {
+			$where = ' WHERE id = %d ';
+			$params[] = $site_id;
 		}
 
-		if ( ! is_array( $group_ids ) ) {
-			$group_ids = array();
-		}
+		$sql = "SELECT id, name, url, client_id FROM {$table_sites} {$where}";
 
-		if ( ! empty( $site_ids ) || ! empty( $group_ids ) ) {
-			global $mainWPBillingExtensionActivator;
-			return apply_filters( 'mainwp_getdbsites', $mainWPBillingExtensionActivator->get_child_file(), $mainWPBillingExtensionActivator->get_child_key(), $site_ids, $group_ids );
+		if ( ! empty( $params ) ) {
+			return $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
+		} else {
+			return $wpdb->get_results( $sql );
 		}
-		return false;
 	}
 
 	/**
