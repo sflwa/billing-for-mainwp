@@ -1,4 +1,4 @@
-/* MainWP Billing Extension JS - Version 1.7.2 (Final Fix for recordId retrieval) */
+/* MainWP Billing Extension JS - Version 1.7.4 (Fixed Initialization Order) */
 
 jQuery(document).ready(function ($) {
 
@@ -67,8 +67,6 @@ jQuery(document).ready(function ($) {
                 
             } else {
                 // Handle error response (which should be JSON with an error message)
-                // The second error "Uncaught TypeError: Cannot read properties of undefined (reading 'error')" 
-                // happens if response.data is undefined. We defensively check here.
                 var errorMsg = response.data ? (response.data.error || 'Unknown error. Check console.') : 'Server did not return error message.';
                 showNotification('error', 'Mapping Failed', 'Could not save mapping. ' + errorMsg);
                 
@@ -90,29 +88,29 @@ jQuery(document).ready(function ($) {
 
     // --- Setup and Event Handlers ---
 
-    // Initialize all dropdowns generally
-    $('.ui.dropdown').dropdown();
+    // Note: We intentionally skip initializing *all* .ui.dropdowns here to prevent Semantic UI from stripping the 
+    // data-record-id attribute before the specific initialization loop runs.
 
     // Initialize the mapping dropdowns separately to attach the onChange handler for auto-save
     $('.mainwp-billing-site-select').each(function() {
         var $select = $(this);
         
-        // FIX: Use this.getAttribute() to reliably capture the recordId from the raw DOM element.
-        var recordId = this.getAttribute('data-record-id'); 
+        // FIX: Use .attr() to reliably capture the recordId before calling .dropdown() on this specific element.
+        var recordId = $select.attr('data-record-id'); 
         
-        // Double-check: if recordId is null/empty, we skip initialization to avoid passing 'undefined'.
+        // Double-check: if recordId is null/empty/undefined, we skip initialization
         if (!recordId) {
-            console.error("Skipping dropdown initialization: data-record-id is missing/invalid.");
+            console.error("Skipping dropdown initialization: data-record-id is missing/invalid for element:", this);
             return;
         }
-
-        // Initialize the specific dropdown with the Semantic UI onChange callback
+        
+        // Now initialize this specific dropdown, applying the necessary styling and behavior.
         $select.dropdown({
             // Semantic UI's recommended way to listen for changes
             onChange: function(value, text, $choice) {
                 // value is the new selected value (site ID)
                 
-                // Use the captured recordId from the outer scope
+                // Use the reliably captured recordId from the outer scope
                 
                 // Call the mapping function for auto-save
                 mapSite(recordId, value, $select);
