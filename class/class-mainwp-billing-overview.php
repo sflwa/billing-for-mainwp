@@ -310,7 +310,7 @@ class MainWP_Billing_Overview {
         ?>
 		<div class="ui segment">
 			<h2 class="ui header"><?php esc_html_e( 'Manual Site Mapping', 'mainwp-billing-extension' ); ?></h2>
-            <p><?php esc_html_e( 'Use this tab to manually link QuickBooks records to MainWP Child Sites. Changes save automatically.', 'mainwp-billing-extension' ); ?></p>
+            <p><?php esc_html_e( 'Select the target site and click Update Mapping to link the record. Changes require an explicit click.', 'mainwp-billing-extension' ); ?></p>
 			<div class="ui divider"></div>
 
 			<form method="get" action="admin.php">
@@ -359,42 +359,34 @@ class MainWP_Billing_Overview {
 					</thead>
 					<tbody>
 						<?php foreach ( $records as $record ) : ?>
-							<tr>
+							<tr data-record-id="<?php echo intval( $record->id ); ?>">
 								<td><?php echo esc_html( $record->qb_client_name ); ?></td>
 								<td><?php echo esc_html( $record->template_name ); ?></td>
 								<td><?php echo esc_html( '$' . number_format( floatval( $record->amount ), 2 ) ); ?></td>
 								<td>
 									<?php
 									if ( $record->mainwp_site_id > 0 ) {
-										echo '<a href="' . esc_url( 'admin.php?page=managesites&dashboard=' . $record->mainwp_site_id );
+										echo '<a class="mapped-site-link" href="' . esc_url( 'admin.php?page=managesites&dashboard=' . $record->mainwp_site_id );
 										echo '" target="_blank">' . esc_html( $record->site_name ) . '</a>';
 									} else {
-										echo '<span class="ui red label">' . esc_html__( 'Unmapped', 'mainwp-billing-extension' ) . '</span>';
+										echo '<span class="ui red label">Unmapped</span>';
 									}
 									?>
 								</td>
 								<td class="right aligned">
-                                    <div class="ui fluid selection dropdown mainwp-billing-map-wrapper" data-record-id="<?php echo intval( $record->id ); ?>">
-                                        
-                                        <input type="hidden" class="mainwp-site-id-input" name="site_id_<?php echo intval( $record->id ); ?>" value="<?php echo intval( $record->mainwp_site_id ); ?>">
-                                        
-                                        <i class="dropdown icon"></i>
-                                        <div class="default text">
-                                            <?php 
-                                            $current_site_name = ($record->mainwp_site_id > 0 && isset($mainwp_sites_map[$record->mainwp_site_id])) ? $mainwp_sites_map[$record->mainwp_site_id] : esc_html__('-- Select Site --', 'mainwp-billing-extension');
-                                            echo esc_html($current_site_name);
-                                            ?>
-                                        </div>
-                                        <div class="menu">
-                                            <div class="item" data-value="0"><?php esc_html_e( '-- Select Site --', 'mainwp-billing-extension' ); ?></div>
+                                    <div class="ui action input">
+                                        <select class="ui dropdown mainwp-billing-site-select" name="site_id_<?php echo intval( $record->id ); ?>" data-current-site-id="<?php echo intval( $record->mainwp_site_id ); ?>">
+                                            <option value="0"><?php esc_html_e( '-- Select Site --', 'mainwp-billing-extension' ); ?></option>
                                             <?php
-                                            // Generate menu items from MainWP sites
                                             foreach ( $mainwp_sites_map as $site_id => $site_name ) {
-                                                echo '<div class="item" data-value="' . intval( $site_id ) . '">' . esc_html( $site_name ) . '</div>';
+                                                $selected = selected( $record->mainwp_site_id, $site_id, false );
+                                                echo '<option value="' . intval( $site_id ) . '" ' . $selected . '>' . esc_html( $site_name ) . '</option>';
                                             }
                                             ?>
-                                        </div>
-                                        
+                                        </select>
+                                        <button class="ui tiny green button mainwp-billing-map-button" type="button" data-record-id="<?php echo intval( $record->id ); ?>">
+                                            <?php esc_html_e( 'Update Mapping', 'mainwp-billing-extension' ); ?>
+                                        </button>
                                     </div>
 								</td>
 							</tr>
