@@ -38,6 +38,9 @@ jQuery(document).ready(function ($) {
         
         // Disable wrapper and show loading indicator
         dropdownElement.addClass('loading disabled');
+        
+        // FIX: Update the hidden input field's value with the new siteId
+        dropdownElement.find('.mainwp-site-id-input').val(siteId);
 
         var ajaxData = {
             action: 'mainwp_billing_map_site',
@@ -52,7 +55,8 @@ jQuery(document).ready(function ($) {
             
             // Handle success response (which is JSON)
             if (response.success) {
-                var newSiteName = dropdownElement.find('option[value="' + siteId + '"]').text();
+                // The new site name is now the text of the selected div.item inside the wrapper
+                var newSiteName = dropdownElement.find('.menu .item.active').text().trim();
                 
                 // Update the Mapped Site column (4th cell in this table)
                 var mappedSiteColumn = row.find('td:eq(3)');
@@ -70,7 +74,7 @@ jQuery(document).ready(function ($) {
                 var errorMsg = response.data ? (response.data.error || 'Unknown error. Check console.') : 'Server did not return error message.';
                 showNotification('error', 'Mapping Failed', 'Could not save mapping. ' + errorMsg);
                 
-                // If save fails, rely on Semantic UI to hold the selected value until page refresh
+                // If save fails, revert the dropdown visually
                 dropdownElement.dropdown('restore defaults');
             }
         }, 'json').fail(function(jqXHR, textStatus, errorThrown) {
@@ -89,7 +93,7 @@ jQuery(document).ready(function ($) {
     // --- Setup and Event Handlers ---
     
     // Initialize only dropdowns that don't need the mapping logic (e.g., filter dropdowns).
-    // This is safe because general Semantic UI styling no longer breaks our mapping elements.
+    // The selector targets dropdowns without the 'mainwp-billing-map-wrapper' class.
     $('.ui.dropdown').not('.mainwp-billing-map-wrapper').dropdown();
 
 
@@ -108,8 +112,7 @@ jQuery(document).ready(function ($) {
             return;
         }
         
-        // Initialize the dropdown inside the wrapper
-        // The element we initialize is the wrapper div, which acts as the visible dropdown.
+        // Initialize this specific dropdown, applying the necessary styling and behavior.
         $wrapper.dropdown({
             // Semantic UI's recommended way to listen for changes
             onChange: function(value, text, $choice) {
