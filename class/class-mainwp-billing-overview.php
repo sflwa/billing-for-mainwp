@@ -50,7 +50,7 @@ class MainWP_Billing_Overview {
 	public function admin_init() {
 
 		$this->handle_import_post();
-
+		$this->handle_mapping_post();
 	}
 
 	/**
@@ -109,6 +109,55 @@ class MainWP_Billing_Overview {
 			}
 		}
 	}
+
+    /**
+	 * Handle mapping post submission.
+	 *
+	 * @return void
+	 */
+	public function handle_mapping_post() {
+		$utility = MainWP_Billing_Utility::get_instance();
+
+		if ( isset( $_POST['action'] ) && 'update_billing_mapping' === $_POST['action'] ) {
+			// Nonce check
+            if ( ! isset( $_POST['mainwp_billing_mapping_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['mainwp_billing_mapping_nonce'] ), 'mainwp_billing_mapping_nonce' ) ) {
+                MainWP_Billing_Utility::log_info( 'Mapping failed: Nonce check failed.' );
+                $utility->update_setting( 'mapping_message', '<div class="ui red message">Security check failed.</div>' );
+                return;
+            }
+
+            // Sanitize inputs
+			$record_id = isset( $_POST['record_id'] ) ? intval( wp_unslash( $_POST['record_id'] ) ) : 0;
+			$site_id   = isset( $_POST['site_id'] ) ? intval( wp_unslash( $_POST['site_id'] ) ) : 0;
+			$qb_client_filter = isset( $_POST['qb_client_filter'] ) ? sanitize_text_field( wp_unslash( $_POST['qb_client_filter'] ) ) : '';
+
+            if ( $record_id > 0 ) {
+                $result = MainWP_Billing_DB::get_instance()->update_site_map( $record_id, $site_id );
+
+                $message = '';
+                if ( is_wp_error( $result ) ) {
+                    $message = '<div class="ui red message">Mapping failed: ' . esc_html( $result->get_error_message() ) . '</div>';
+                } elseif ( $result > 0 ) {
+                    $message = '<div class="ui green message">Mapping for Record ID ' . $record_id . ' updated successfully.</div>';
+                } else {
+                    $message = '<div class="ui yellow message">Mapping for Record ID ' . $record_id . ' already set to Site ID ' . $site_id . '.</div>';
+                }
+
+                $utility->update_setting( 'mapping_message', $message );
+            }
+
+            // Build redirect URL, maintaining the filter
+            $redirect_url = 'admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=mapping';
+            if ( ! empty( $qb_client_filter ) ) {
+                $redirect_url .= '&qb_client=' . urlencode( $qb_client_filter );
+            }
+
+            // Redirect to prevent form resubmission
+            wp_safe_redirect( $redirect_url );
+            exit;
+		}
+	}
+
 
 	/**
 	 * Render extension page tabs.
@@ -284,7 +333,11 @@ class MainWP_Billing_Overview {
      * @return void
      */
     public static function render_mapping() {
-		// Fetch data
+        $utility = MainWP_Billing_Utility::get_instance();
+        $mapping_message = $utility->get_setting( 'mapping_message' );
+        $utility->update_setting( 'mapping_message', '' ); // Clear message after display.
+
+		// Fetch current filter state
 		$qb_client_filter = isset( $_GET['qb_client'] ) ? sanitize_text_field( wp_unslash( $_GET['qb_client'] ) ) : '';
 
 		$params = array();
@@ -312,6 +365,10 @@ class MainWP_Billing_Overview {
 			<h2 class="ui header"><?php esc_html_e( 'Manual Site Mapping', 'mainwp-billing-extension' ); ?></h2>
             <p><?php esc_html_e( 'Select the target site and click Update Mapping to link the record. Changes require an explicit click.', 'mainwp-billing-extension' ); ?></p>
 			<div class="ui divider"></div>
+
+            <?php if ( ! empty( $mapping_message ) ) : ?>
+                <?php echo $mapping_message; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php endif; ?>
 
 			<form method="get" action="admin.php">
 				<input type="hidden" name="page" value="Extensions-Billing-For-Mainwp-Main" />
@@ -359,11 +416,11 @@ class MainWP_Billing_Overview {
 					</thead>
 					<tbody>
 						<?php foreach ( $records as $record ) : ?>
-							<tr data-record-id="<?php echo intval( $record->id ); ?>">
-								<td><?php echo esc_html( $record->qb_client_name ); ?></td>
-								<td><?php echo esc_html( $record->template_name ); ?></td>
-								<td><?php echo esc_html( '$' . number_format( floatval( $record->amount ), 2 ) ); ?></td>
-								<td>
+							<tr>
+								<td data-label="Client"><?php echo esc_html( $record->qb_client_name ); ?></td>
+								<td data-label="Template"><?php echo esc_html( $record->template_name ); ?></td>
+								<td data-label="Amount"><?php echo esc_html( '$' . number_format( floatval( $record->amount ), 2 ) ); ?></td>
+								<td data-label="Mapped Site">
 									<?php
 									if ( $record->mainwp_site_id > 0 ) {
 										echo '<a class="mapped-site-link" href="' . esc_url( 'admin.php?page=managesites&dashboard=' . $record->mainwp_site_id );
@@ -373,21 +430,28 @@ class MainWP_Billing_Overview {
 									}
 									?>
 								</td>
-								<td class="right aligned">
-                                    <div class="ui fluid action input mainwp-billing-map-cell">
-                                        <select class="ui dropdown mainwp-billing-site-select" name="site_id_<?php echo intval( $record->id ); ?>" data-current-site-id="<?php echo intval( $record->mainwp_site_id ); ?>">
-                                            <option value="0"><?php esc_html_e( '-- Select Site --', 'mainwp-billing-extension' ); ?></option>
-                                            <?php
-                                            foreach ( $mainwp_sites_map as $site_id => $site_name ) {
-                                                $selected = selected( $record->mainwp_site_id, $site_id, false );
-                                                echo '<option value="' . intval( $site_id ) . '" ' . $selected . '>' . esc_html( $site_name ) . '</option>';
-                                            }
-                                            ?>
-                                        </select>
-                                        <button class="ui tiny green button mainwp-billing-map-button" type="button">
-                                            <?php esc_html_e( 'Update Mapping', 'mainwp-billing-extension' ); ?>
-                                        </button>
-                                    </div>
+								<td class="right aligned" data-label="Action">
+                                    <form method="post" action="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=mapping">
+                                        <?php wp_nonce_field( 'mainwp_billing_mapping_nonce', 'mainwp_billing_mapping_nonce' ); ?>
+                                        <input type="hidden" name="action" value="update_billing_mapping">
+                                        <input type="hidden" name="record_id" value="<?php echo intval( $record->id ); ?>">
+                                        <input type="hidden" name="qb_client_filter" value="<?php echo esc_attr( $qb_client_filter ); ?>">
+
+                                        <div class="ui fluid action input">
+                                            <select class="ui dropdown mainwp-billing-site-select" name="site_id">
+                                                <option value="0"><?php esc_html_e( '-- Select Site --', 'mainwp-billing-extension' ); ?></option>
+                                                <?php
+                                                foreach ( $mainwp_sites_map as $site_id => $site_name ) {
+                                                    $selected = selected( $record->mainwp_site_id, $site_id, false );
+                                                    echo '<option value="' . intval( $site_id ) . '" ' . $selected . '>' . esc_html( $site_name ) . '</option>';
+                                                }
+                                                ?>
+                                            </select>
+                                            <button class="ui tiny green button" type="submit">
+                                                <?php esc_html_e( 'Update Mapping', 'mainwp-billing-extension' ); ?>
+                                            </button>
+                                        </div>
+                                    </form>
 								</td>
 							</tr>
 						<?php endforeach; ?>
