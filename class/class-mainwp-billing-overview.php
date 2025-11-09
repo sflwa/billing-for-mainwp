@@ -699,8 +699,38 @@ class MainWP_Billing_Overview {
 
         // Data for exclusion selection
         $all_clients = MainWP_Billing_DB::get_instance()->get_all_clients();
-        $all_sites   = MainWP_Billing_Utility::get_websites(); // Use all sites for exclusion selection
+        //$all_sites   = MainWP_Billing_Utility::get_websites(); // Use all sites for exclusion selection
+
+		// Fetch all sites with their mapping status
+        $all_sites_with_status = MainWP_Billing_DB::get_instance()->get_all_mainwp_sites_with_mapping_status(); //
+		
+		
+		// Determine the list of sites to show in the individual exclusion section
+        $sites_to_show_in_exclusion_list = array();
         
+        foreach ( $all_sites_with_status as $site ) { //
+            $site_id   = intval( $site->id ); //
+            $client_id = intval( $site->client_id ); //
+            $is_mapped = intval( $site->is_mapped ); //
+            
+            // Condition 1: Include sites that are currently in the individual exclusion list (so they can be unexcluded).
+            $is_already_excluded = in_array( $site_id, $excluded_site_ids ); //
+
+            // Condition 2: Include sites that are NOT mapped AND NOT client-excluded.
+            $is_unmapped_and_not_client_excluded = ( 0 === $is_mapped ) && ( ! in_array( $client_id, $excluded_client_ids ) ); //
+            
+            // Only add the site if it meets either condition.
+            if ( $is_already_excluded || $is_unmapped_and_not_client_excluded ) { //
+                $sites_to_show_in_exclusion_list[] = $site; //
+            }
+        }
+        
+        $all_sites = $sites_to_show_in_exclusion_list; // Use the filtered list
+		
+		
+		
+		
+		
         ?>
         <div class="ui segment">
             <h2 class="ui header"><?php esc_html_e( 'Billing Exclusion Settings', 'mainwp-billing-extension' ); ?></h2>
