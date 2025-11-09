@@ -122,7 +122,7 @@ class MainWP_Billing_DB {
 	}
 
 	/**
-	 * Retrieve all MainWP clients. (FIXED: Using wp_mainwp_wp_clients table)
+	 * Retrieve all MainWP clients.
 	 *
 	 * @return array Array of client objects (id, name).
 	 */
@@ -219,7 +219,7 @@ class MainWP_Billing_DB {
 	 * @param int $record_id The ID of the billing record.
 	 * @param int $site_id The MainWP site ID to map to.
 	 *
-	 * @return true|\WP_Error True on success, WP_Error on failure.
+	 * @return int|\WP_Error Number of affected rows (0 or 1) or WP_Error on failure.
 	 */
 	public function update_site_map( $record_id, $site_id ) {
 		$table_name = $this->get_table_name( 'records' );
@@ -236,10 +236,12 @@ class MainWP_Billing_DB {
 		);
 
 		if ( false === $updated ) {
-			return new \WP_Error( 'db_error', esc_html__( 'Database update failed.', 'mainwp-billing-extension' ) );
+			// A true database error occurred. Log it and return a detailed error.
+			return new \WP_Error( 'db_error', $this->wpdb->last_error . ' (Failed to execute update query.)' );
 		}
-
-		return true;
+		
+		// Return 1 if rows were affected, or 0 if the value was already correct (which is still a success for user intent).
+		return (int) $updated;
 	}
 
 
@@ -388,8 +390,13 @@ class MainWP_Billing_DB {
 					array( '%d' )
 				);
 
-				if ( false !== $updated && $updated > 0 ) {
+				if ( false === $updated ) {
+					// Log a failure but continue import process
+					MainWP_Billing_Utility::log_info( 'DB Error during UPDATE for template ' . $template_name . ': ' . $this->wpdb->last_error );
+				} elseif ( $updated > 0 ) {
 					$import_stats['updated']++;
+				} else {
+					$import_stats['skipped']++;
 				}
 
 			} else {
@@ -409,6 +416,9 @@ class MainWP_Billing_DB {
 
 				if ( $inserted ) {
 					$import_stats['added']++;
+				} else {
+					// Log a failure but continue import process
+					MainWP_Billing_Utility::log_info( 'DB Error during INSERT for template ' . $template_name . ': ' . $this->wpdb->last_error );
 				}
 			}
 		}
@@ -422,7 +432,10 @@ class MainWP_Billing_DB {
 				$processed_template_names
 			) );
 
-			if ( false !== $deleted ) {
+			if ( false === $deleted ) {
+				// Log a failure but still return import stats
+				MainWP_Billing_Utility::log_info( 'DB Error during DELETE: ' . $this->wpdb->last_error );
+			} elseif ( $deleted > 0 ) {
 				$import_stats['removed'] = intval( $deleted );
 			}
 		}
