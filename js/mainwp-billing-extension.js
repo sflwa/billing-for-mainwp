@@ -1,4 +1,4 @@
-/* MainWP Billing Extension JS - Version 1.7.4 (Fixed Initialization Order) */
+/* MainWP Billing Extension JS - Version 1.7.5 (Targeting Wrapper Element) */
 
 jQuery(document).ready(function ($) {
 
@@ -36,7 +36,7 @@ jQuery(document).ready(function ($) {
         
         console.log("Mapping Record: " + recordId + " to Site ID: " + siteId); // Debugging
         
-        // Disable dropdown and show loading indicator
+        // Disable wrapper and show loading indicator
         dropdownElement.addClass('loading disabled');
 
         var ajaxData = {
@@ -47,7 +47,7 @@ jQuery(document).ready(function ($) {
 
         $.post(ajaxurl, ajaxData, function(response) {
             
-            // Re-enable dropdown
+            // Re-enable wrapper
             dropdownElement.removeClass('loading disabled');
             
             // Handle success response (which is JSON)
@@ -70,7 +70,7 @@ jQuery(document).ready(function ($) {
                 var errorMsg = response.data ? (response.data.error || 'Unknown error. Check console.') : 'Server did not return error message.';
                 showNotification('error', 'Mapping Failed', 'Could not save mapping. ' + errorMsg);
                 
-                // If save fails, revert the dropdown visually
+                // If save fails, rely on Semantic UI to hold the selected value until page refresh
                 dropdownElement.dropdown('restore defaults');
             }
         }, 'json').fail(function(jqXHR, textStatus, errorThrown) {
@@ -87,25 +87,30 @@ jQuery(document).ready(function ($) {
 
 
     // --- Setup and Event Handlers ---
+    
+    // Initialize only dropdowns that don't need the mapping logic (e.g., filter dropdowns).
+    // This is safe because general Semantic UI styling no longer breaks our mapping elements.
+    $('.ui.dropdown').not('.mainwp-billing-map-wrapper').dropdown();
 
-    // Note: We intentionally skip initializing *all* .ui.dropdowns here to prevent Semantic UI from stripping the 
-    // data-record-id attribute before the specific initialization loop runs.
 
-    // Initialize the mapping dropdowns separately to attach the onChange handler for auto-save
-    $('.mainwp-billing-site-select').each(function() {
-        var $select = $(this);
+    // Initialize the mapping dropdowns separately
+    $('.mainwp-billing-map-wrapper').each(function() {
+        var $wrapper = $(this);
         
-        // FIX: Use .attr() to reliably capture the recordId before calling .dropdown() on this specific element.
-        var recordId = $select.attr('data-record-id'); 
+        // Read the recordId from the stable wrapper element
+        var recordId = $wrapper.attr('data-record-id'); 
         
+        console.log("Processing wrapper. Found recordId:", recordId);
+
         // Double-check: if recordId is null/empty/undefined, we skip initialization
         if (!recordId) {
             console.error("Skipping dropdown initialization: data-record-id is missing/invalid for element:", this);
             return;
         }
         
-        // Now initialize this specific dropdown, applying the necessary styling and behavior.
-        $select.dropdown({
+        // Initialize the dropdown inside the wrapper
+        // The element we initialize is the wrapper div, which acts as the visible dropdown.
+        $wrapper.dropdown({
             // Semantic UI's recommended way to listen for changes
             onChange: function(value, text, $choice) {
                 // value is the new selected value (site ID)
@@ -113,7 +118,7 @@ jQuery(document).ready(function ($) {
                 // Use the reliably captured recordId from the outer scope
                 
                 // Call the mapping function for auto-save
-                mapSite(recordId, value, $select);
+                mapSite(recordId, value, $wrapper);
             }
         });
     });
