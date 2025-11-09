@@ -366,23 +366,25 @@ class MainWP_Billing_Overview {
 								<td>
 									<?php
 									if ( $record->mainwp_site_id > 0 ) {
-										echo '<a href="' . esc_url( 'admin.php?page=managesites&dashboard=' . $record->mainwp_site_id ) . '" target="_blank">' . esc_html( $record->site_name ) . '</a>';
+										echo '<a href="' . esc_url( 'admin.php?page=managesites&dashboard=' . $record->mainwp_site_id );
+										echo '" target="_blank">' . esc_html( $record->site_name ) . '</a>';
 									} else {
 										echo '<span class="ui red label">' . esc_html__( 'Unmapped', 'mainwp-billing-extension' ) . '</span>';
 									}
 									?>
 								</td>
 								<td class="right aligned">
-									<select class="ui dropdown mainwp-billing-site-select" data-record-id="<?php echo intval( $record->id ); ?>">
-										<option value="0"><?php esc_html_e( '-- Select Site --', 'mainwp-billing-extension' ); ?></option>
-										<?php
-										foreach ( $mainwp_sites_map as $site_id => $site_name ) {
-											$selected = selected( $record->mainwp_site_id, $site_id, false );
-											echo '<option value="' . intval( $site_id ) . '" ' . $selected . '>' . esc_html( $site_name ) . '</option>';
-										}
-										?>
-									</select>
-                                    <i class="ui small check circle icon green mainwp-billing-mapped-check" style="display:none; margin-left: 10px;"></i>
+                                    <div class="ui fluid selection dropdown mainwp-billing-map-wrapper" data-record-id="<?php echo intval( $record->id ); ?>">
+                                        <select class="mainwp-billing-site-select">
+                                            <option value="0"><?php esc_html_e( '-- Select Site --', 'mainwp-billing-extension' ); ?></option>
+                                            <?php
+                                            foreach ( $mainwp_sites_map as $site_id => $site_name ) {
+                                                $selected = selected( $record->mainwp_site_id, $site_id, false );
+                                                echo '<option value="' . intval( $site_id ) . '" ' . $selected . '>' . esc_html( $site_name ) . '</option>';
+                                            }
+                                            ?>
+                                        </select>
+                                    </div>
 								</td>
 							</tr>
 						<?php endforeach; ?>
