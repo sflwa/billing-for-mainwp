@@ -51,7 +51,42 @@ class MainWP_Billing_Overview {
 
 		$this->handle_import_post();
 		$this->handle_mapping_post();
-		$this->handle_clear_data_post(); // New POST handler
+		$this->handle_clear_data_post(); 
+		$this->handle_settings_post();
+	}
+
+    /**
+	 * Handle exclusion settings post submission.
+	 *
+	 * @return void
+	 */
+	public function handle_settings_post() {
+		$utility = MainWP_Billing_Utility::get_instance();
+
+		if ( isset( $_POST['action'] ) && 'save_exclusion_settings' === $_POST['action'] ) {
+			// Nonce check
+            if ( ! isset( $_POST['mainwp_billing_settings_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['mainwp_billing_settings_nonce'] ), 'mainwp_billing_settings' ) ) {
+                $utility->update_setting( 'settings_message', '<div class="ui red message">Security check failed. Settings not saved.</div>' );
+                return;
+            }
+
+            // Sanitize inputs for excluded clients (array of integers)
+			$excluded_client_ids = isset( $_POST['excluded_client_ids'] ) ? array_map( 'intval', wp_unslash( $_POST['excluded_client_ids'] ) ) : array();
+            
+            // Sanitize inputs for excluded sites (array of integers)
+            $excluded_site_ids = isset( $_POST['excluded_site_ids'] ) ? array_map( 'intval', wp_unslash( $_POST['excluded_site_ids'] ) ) : array();
+
+			// Update the settings
+            $utility->update_exclusion_settings( $excluded_client_ids, $excluded_site_ids );
+
+            // Set success message
+            $utility->update_setting( 'settings_message', '<div class="ui green message">Exclusion settings saved successfully.</div>' );
+
+            // Redirect to prevent form resubmission
+            $redirect_url = 'admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=settings';
+            wp_safe_redirect( $redirect_url );
+            exit;
+		}
 	}
 
 	/**
@@ -204,6 +239,8 @@ class MainWP_Billing_Overview {
 				$current_tab = 'mapping';
 			} elseif ( $_GET['tab'] == 'import' ) {
 				$current_tab = 'import';
+			} elseif ( $_GET['tab'] == 'settings' ) {
+				$current_tab = 'settings';
 			}
 		}
 
@@ -213,6 +250,7 @@ class MainWP_Billing_Overview {
 			<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=dashboard" class="item <?php echo ( $current_tab == 'dashboard' ) ? 'active' : ''; ?>"><i class="tasks icon"></i> <?php esc_html_e( 'Dashboard', 'mainwp-billing-extension' ); ?></a>
 			<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=mapping" class="item <?php echo ( $current_tab == 'mapping' ) ? 'active' : ''; ?>"><i class="exchange icon"></i> <?php esc_html_e( 'Mapping', 'mainwp-billing-extension' ); ?></a>
 			<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=import" class="item <?php echo ( $current_tab == 'import' ) ? 'active' : ''; ?>"><i class="upload icon"></i> <?php esc_html_e( 'Import', 'mainwp-billing-extension' ); ?></a>
+			<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=settings" class="item <?php echo ( $current_tab == 'settings' ) ? 'active' : ''; ?>"><i class="sliders horizontal icon"></i> <?php esc_html_e( 'Settings', 'mainwp-billing-extension' ); ?></a>
 		</div>
 
         <div class="ui success message fixed-bottom-right mainwp-billing-notification" style="display: none;">
@@ -228,6 +266,11 @@ class MainWP_Billing_Overview {
                 z-index: 1000;
                 min-width: 300px;
             }
+            /* Add some spacing for checkbox groups in settings */
+            .checkbox-group .ui.checkbox {
+                display: block;
+                padding-bottom: 5px;
+            }
         </style>
 		<?php
 
@@ -235,6 +278,8 @@ class MainWP_Billing_Overview {
 			self::render_import();
 		} elseif ( $current_tab == 'mapping' ) {
 			self::render_mapping();
+		} elseif ( $current_tab == 'settings' ) {
+			self::render_settings();
 		} else {
 			self::render_dashboard();
 		}
@@ -249,6 +294,12 @@ class MainWP_Billing_Overview {
 		// Fetch data
 		$client_id_filter = isset( $_GET['client_id'] ) ? intval( wp_unslash( $_GET['client_id'] ) ) : 0;
 
+		// Get exclusion settings
+		$utility = MainWP_Billing_Utility::get_instance();
+		$exclusions = $utility->get_exclusion_settings();
+		$excluded_clients = $exclusions['excluded_client_ids'];
+		$excluded_sites   = $exclusions['excluded_site_ids'];
+
 		// Get all MainWP clients for the filter dropdown
 		$all_clients = MainWP_Billing_DB::get_instance()->get_all_clients();
         
@@ -259,6 +310,12 @@ class MainWP_Billing_Overview {
         $unmapped_sites = array();
 
         foreach ( $all_sites as $site ) {
+			// Apply exclusions filter here
+			if ( in_array( intval( $site->client_id ), $excluded_clients ) || in_array( intval( $site->id ), $excluded_sites ) ) {
+				// Skip excluded sites/clients
+				continue;
+			}
+
             if ( $site->is_mapped ) {
                 $mapped_sites[] = $site;
             } else {
@@ -269,6 +326,7 @@ class MainWP_Billing_Overview {
         ?>
 		<div class="ui segment">
 			<h2 class="ui header"><?php esc_html_e( 'MainWP Site Mapping Dashboard', 'mainwp-billing-extension' ); ?></h2>
+            <p class="ui info message"><?php esc_html_e( 'Sites excluded in the Settings tab are not shown in the lists below.', 'mainwp-billing-extension' ); ?></p>
 			<div class="ui divider"></div>
 
 			<form method="get" action="admin.php">
@@ -301,7 +359,7 @@ class MainWP_Billing_Overview {
 
 			<div class="ui divider"></div>
             
-            <!-- Swapped order: Unmapped Sites now appears first -->
+            <!-- Unmapped Sites first -->
             <h3 class="ui header"><?php esc_html_e( 'Unmapped Sites', 'mainwp-billing-extension' ); ?> <span class="ui red label"><?php echo count( $unmapped_sites ); ?></span></h3>
             <p><?php esc_html_e( 'These sites do not have any recurring billing record assigned. Consider mapping them.', 'mainwp-billing-extension' ); ?></p>
 			<?php
@@ -315,8 +373,6 @@ class MainWP_Billing_Overview {
 			<?php
 			self::render_sites_table( $mapped_sites, true );
 			?>
-            <!-- End swapped order -->
-
 		</div>
         <?php
     }
@@ -452,6 +508,11 @@ class MainWP_Billing_Overview {
 			$mainwp_sites_map[ $site->id ] = $site->name;
 		}
 
+        // 1. Sort the site map alphabetically by name (value).
+        uasort( $mainwp_sites_map, function( $a, $b ) {
+            return strcasecmp( $a, $b );
+        } );
+
         ?>
 		<div class="ui segment">
 			<h2 class="ui header"><?php esc_html_e( 'Manual Site Mapping', 'mainwp-billing-extension' ); ?></h2>
@@ -533,6 +594,7 @@ class MainWP_Billing_Overview {
                                             <select class="ui dropdown mainwp-billing-site-select" name="site_id">
                                                 <option value="0"><?php esc_html_e( '-- Select Site --', 'mainwp-billing-extension' ); ?></option>
                                                 <?php
+                                                // The $mainwp_sites_map array is now sorted alphabetically
                                                 foreach ( $mainwp_sites_map as $site_id => $site_name ) {
                                                     $selected = selected( $record->mainwp_site_id, $site_id, false );
                                                     echo '<option value="' . intval( $site_id ) . '" ' . $selected . '>' . esc_html( $site_name ) . '</option>';
@@ -617,6 +679,86 @@ class MainWP_Billing_Overview {
                 </button>
             </form>
 
+        </div>
+        <?php
+    }
+
+    /**
+     * Render the Settings page content with exclusion forms.
+     *
+     * @return void
+     */
+    public static function render_settings() {
+        $utility = MainWP_Billing_Utility::get_instance();
+        $settings_message = $utility->get_setting( 'settings_message' );
+        $utility->update_setting( 'settings_message', '' ); // Clear message after display.
+
+        $exclusions = $utility->get_exclusion_settings();
+        $excluded_client_ids = $exclusions['excluded_client_ids'];
+        $excluded_site_ids   = $exclusions['excluded_site_ids'];
+
+        // Data for exclusion selection
+        $all_clients = MainWP_Billing_DB::get_instance()->get_all_clients();
+        $all_sites   = MainWP_Billing_Utility::get_websites(); // Use all sites for exclusion selection
+        
+        ?>
+        <div class="ui segment">
+            <h2 class="ui header"><?php esc_html_e( 'Billing Exclusion Settings', 'mainwp-billing-extension' ); ?></h2>
+            <div class="ui divider"></div>
+
+            <?php if ( ! empty( $settings_message ) ) : ?>
+                <?php echo $settings_message; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+            <?php endif; ?>
+
+            <form method="post" action="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=settings" class="ui form">
+                <?php wp_nonce_field( 'mainwp_billing_settings', 'mainwp_billing_settings_nonce' ); ?>
+                <input type="hidden" name="action" value="save_exclusion_settings">
+                
+                <!-- Exclude by Client -->
+                <h3 class="ui header"><?php esc_html_e( 'Exclude Sites by Client', 'mainwp-billing-extension' ); ?></h3>
+                <p><?php esc_html_e( 'All sites belonging to the selected clients will be hidden from the Dashboard Unmapped/Mapped lists.', 'mainwp-billing-extension' ); ?></p>
+                
+                <div class="field">
+                    <div class="ui secondary segment checkbox-group">
+                        <?php if ( ! empty( $all_clients ) ) : ?>
+                            <?php foreach ( $all_clients as $client ) : ?>
+                                <div class="ui checkbox">
+                                    <input type="checkbox" name="excluded_client_ids[]" value="<?php echo intval( $client->id ); ?>" <?php checked( in_array( intval( $client->id ), $excluded_client_ids ) ); ?>>
+                                    <label><?php echo esc_html( $client->name ); ?></label>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <div class="ui info message"><?php esc_html_e( 'No MainWP Clients found.', 'mainwp-billing-extension' ); ?></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="ui divider"></div>
+
+                <!-- Exclude by Site -->
+                <h3 class="ui header"><?php esc_html_e( 'Exclude Individual Sites', 'mainwp-billing-extension' ); ?></h3>
+                <p><?php esc_html_e( 'Manually exclude individual sites that are free or do not require billing management.', 'mainwp-billing-extension' ); ?></p>
+                
+                <div class="field">
+                    <div class="ui secondary segment checkbox-group">
+                        <?php if ( ! empty( $all_sites ) ) : ?>
+                            <?php foreach ( $all_sites as $site ) : ?>
+                                <div class="ui checkbox">
+                                    <input type="checkbox" name="excluded_site_ids[]" value="<?php echo intval( $site->id ); ?>" <?php checked( in_array( intval( $site->id ), $excluded_site_ids ) ); ?>>
+                                    <label><?php echo esc_html( $site->name ) . ' (' . esc_html( MainWP_Billing_Utility::get_nice_url( $site->url ) ) . ')'; ?></label>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php else : ?>
+                            <div class="ui info message"><?php esc_html_e( 'No MainWP Sites found.', 'mainwp-billing-extension' ); ?></div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="ui divider"></div>
+
+                <button class="ui green button" type="submit"><?php esc_html_e( 'Save Exclusion Settings', 'mainwp-billing-extension' ); ?></button>
+
+            </form>
         </div>
         <?php
     }
