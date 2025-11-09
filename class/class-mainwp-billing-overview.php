@@ -248,18 +248,27 @@ class MainWP_Billing_Overview {
     public static function render_dashboard() {
 		// Fetch data
 		$client_id_filter = isset( $_GET['client_id'] ) ? intval( wp_unslash( $_GET['client_id'] ) ) : 0;
-		$params = array();
-
-		if ( $client_id_filter > 0 ) {
-			$params['mainwp_client_id'] = $client_id_filter;
-		}
 
 		// Get all MainWP clients for the filter dropdown
 		$all_clients = MainWP_Billing_DB::get_instance()->get_all_clients();
+        
+        // Fetch all MainWP sites with their mapping status
+        $all_sites = MainWP_Billing_DB::get_instance()->get_all_mainwp_sites_with_mapping_status( $client_id_filter );
+        
+        $mapped_sites = array();
+        $unmapped_sites = array();
+
+        foreach ( $all_sites as $site ) {
+            if ( $site->is_mapped ) {
+                $mapped_sites[] = $site;
+            } else {
+                $unmapped_sites[] = $site;
+            }
+        }
 
         ?>
 		<div class="ui segment">
-			<h2 class="ui header"><?php esc_html_e( 'Billing Overview Dashboard', 'mainwp-billing-extension' ); ?></h2>
+			<h2 class="ui header"><?php esc_html_e( 'MainWP Site Mapping Dashboard', 'mainwp-billing-extension' ); ?></h2>
 			<div class="ui divider"></div>
 
 			<form method="get" action="admin.php">
@@ -291,28 +300,32 @@ class MainWP_Billing_Overview {
 			</form>
 
 			<div class="ui divider"></div>
-
-            <h3 class="ui header"><?php esc_html_e( 'Mapped Recurring Billing', 'mainwp-billing-extension' ); ?></h3>
+            
+            <!-- Swapped order: Unmapped Sites now appears first -->
+            <h3 class="ui header"><?php esc_html_e( 'Unmapped Sites', 'mainwp-billing-extension' ); ?> <span class="ui red label"><?php echo count( $unmapped_sites ); ?></span></h3>
+            <p><?php esc_html_e( 'These sites do not have any recurring billing record assigned. Consider mapping them.', 'mainwp-billing-extension' ); ?></p>
 			<?php
-			$mapped_params = array_merge( $params, array( 'is_mapped' => true ) );
-			$mapped_records = MainWP_Billing_DB::get_instance()->get_billing_records( $mapped_params );
-			self::render_records_table( $mapped_records, true );
+			self::render_sites_table( $unmapped_sites, false );
 			?>
 
             <div class="ui divider"></div>
 
-            <h3 class="ui header"><?php esc_html_e( 'Unmapped Billing Records', 'mainwp-billing-extension' ); ?></h3>
+            <h3 class="ui header"><?php esc_html_e( 'Mapped Sites', 'mainwp-billing-extension' ); ?> <span class="ui green label"><?php echo count( $mapped_sites ); ?></span></h3>
+            <p><?php esc_html_e( 'These sites have at least one recurring billing record assigned to them.', 'mainwp-billing-extension' ); ?></p>
 			<?php
-			$unmapped_params = array_merge( $params, array( 'is_mapped' => false ) );
-			$unmapped_records = MainWP_Billing_DB::get_instance()->get_billing_records( $unmapped_params );
-			self::render_records_table( $unmapped_records, false );
+			self::render_sites_table( $mapped_sites, true );
 			?>
+            <!-- End swapped order -->
+
 		</div>
         <?php
     }
 
     /**
      * Helper function to render a billing records table.
+     *
+     * This function is retained from the original file for compatibility with other tabs/logic,
+     * but the dashboard now uses render_sites_table().
      *
      * @param array $records Records to display.
      * @param bool $is_mapped_section Whether this is the mapped section.
@@ -350,6 +363,54 @@ class MainWP_Billing_Overview {
                                     </a>
                                 </td>
                             <?php endif; ?>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif;
+    }
+
+    /**
+     * Helper function to render a table of MainWP sites.
+     *
+     * @param array $sites Array of site objects (id, name, url, client_id, is_mapped).
+     * @param bool $is_mapped_section Whether this is the mapped sites section.
+     * @return void
+     */
+    private static function render_sites_table( $sites, $is_mapped_section ) {
+        if ( empty( $sites ) ) : ?>
+            <div class="ui info message">
+                <?php esc_html_e( 'No sites found in this section that match the filter.', 'mainwp-billing-extension' ); ?>
+            </div>
+        <?php else : ?>
+            <table class="ui celled unstackable table">
+                <thead>
+                    <tr>
+                        <th><?php esc_html_e( 'Site Name', 'mainwp-billing-extension' ); ?></th>
+                        <th><?php esc_html_e( 'Site URL', 'mainwp-billing-extension' ); ?></th>
+                        <th><?php esc_html_e( 'Action', 'mainwp-billing-extension' ); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ( $sites as $site ) : ?>
+                        <tr>
+                            <td>
+                                <a href="<?php echo esc_url( 'admin.php?page=managesites&dashboard=' . $site->id ); ?>" target="_blank">
+                                    <?php echo esc_html( $site->name ); ?>
+                                </a>
+                            </td>
+                            <td><?php echo esc_html( MainWP_Billing_Utility::get_nice_url( $site->url ) ); ?></td>
+                            <td>
+                                <?php if ( $is_mapped_section ) : ?>
+                                    <a href="<?php echo esc_url( 'admin.php?page=managesites&tab=BillingIndividual&id=' . $site->id ); ?>" class="ui basic tiny button">
+                                        <?php esc_html_e( 'View Records', 'mainwp-billing-extension' ); ?>
+                                    </a>
+                                <?php else : ?>
+                                    <a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=mapping" class="ui basic tiny red button">
+                                        <?php esc_html_e( 'Go to Mapping', 'mainwp-billing-extension' ); ?>
+                                    </a>
+                                <?php endif; ?>
+                            </td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
