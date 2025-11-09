@@ -48,31 +48,60 @@ class MainWP_Billing_Widget {
 	 *
 	 * Renders the Overview page widget content. Displays sites with no recurring billing. (Req #7)
 	 */
-	public function render_general_overview_widget() {
-		$all_sites = MainWP_Billing_Utility::get_websites();
-		$mapped_site_ids = MainWP_Billing_DB::get_instance()->get_all_mapped_site_ids();
+public function render_general_overview_widget() {
+		$utility = MainWP_Billing_Utility::get_instance();
+		$exclusions = $utility->get_exclusion_settings();
+		$excluded_clients = $exclusions['excluded_client_ids'];
+		$excluded_sites   = $exclusions['excluded_site_ids'];
+
+		// Fetch all sites with their mapping status (0 means no client filter)
+		$all_sites_with_status = MainWP_Billing_DB::get_instance()->get_all_mainwp_sites_with_mapping_status( 0 );
 
 		$unmapped_sites = array();
+		$total_sites = count( MainWP_Billing_Utility::get_websites() ); // Total sites before exclusion for the sub header count
 
-		foreach ( $all_sites as $site ) {
-			if ( ! in_array( intval( $site->id ), $mapped_site_ids ) ) {
+		foreach ( $all_sites_with_status as $site ) {
+			// Apply exclusions filter first, matching the dashboard logic
+			if ( in_array( intval( $site->client_id ), $excluded_clients ) || in_array( intval( $site->id ), $excluded_sites ) ) {
+				// Skip excluded sites/clients
+				continue;
+			}
+
+			// Check for unmapped status (is_mapped = 0)
+			if ( 0 === intval( $site->is_mapped ) ) {
 				$unmapped_sites[] = $site;
 			}
 		}
 
 		$unmapped_count = count( $unmapped_sites );
-
+		
+		// New Header structure
 		?>
-		<div class="ui grid">
-			<div class="twelve wide column">
-				<h3 class="ui header handle-drag">
-					<?php esc_html_e( 'Missing Recurring Billing', 'mainwp-billing-extension' ); ?>
-					<div class="sub header"><?php esc_html_e( 'Sites missing an assigned recurring billing record.', 'mainwp-billing-extension' ); ?></div>
-				</h3>
+		<div class="mainwp-widget-header">
+			<div class="ui grid">
+				<div class="twelve wide column">
+					<h2 class="ui header handle-drag">
+						<?php esc_html_e( 'Missing Recurring Billing', 'mainwp-billing-extension' ); ?>
+						<div class="sub header">
+							<?php
+							echo sprintf( esc_html__( 'Displaying %d unmapped sites across all sites (total sites: %d).', 'mainwp-billing-extension' ),
+								$unmapped_count,
+								$total_sites
+							);
+							?>
+						</div>
+					</h2>
+				</div>
+				<div class="four wide column right aligned">
+					<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=mapping" class="ui button mini green" style="margin-top: 5px;">
+						<i class="exchange icon"></i>
+						<?php esc_html_e( 'Go to Mapping', 'mainwp-billing-extension' ); ?>
+					</a>
+				</div>
 			</div>
 		</div>
-		<div class="ui hidden divider"></div>
-        <div class="ui fluid segment">
+        <div class="ui hidden divider"></div>
+        <div class="ui fluid segment" style="overflow-x: auto;">
 			<?php if ( $unmapped_count > 0 ) : ?>
                 <div class="ui red message">
 					<?php echo sprintf( esc_html( _n( 'There is %d site without recurring billing.', 'There are %d sites without recurring billing.', $unmapped_count, 'mainwp-billing-extension' ) ), $unmapped_count ); ?>
@@ -101,13 +130,8 @@ class MainWP_Billing_Widget {
                 </div>
 			<?php endif; ?>
         </div>
-		<div class="ui hidden divider"></div>
-		<div class="ui divider" style="margin-left:-1em;margin-right:-1em;"></div>
-		<div class="ui two columns grid">
-			<div class="left aligned column">
-				<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main" class="ui basic green button"><?php esc_html_e( 'Billing Dashboard', 'mainwp-billing-extension' ); ?></a>
-			</div>
-		</div>
+		
+		
 		<?php
 	}
 
