@@ -51,6 +51,7 @@ class MainWP_Billing_Overview {
 
 		$this->handle_import_post();
 		$this->handle_mapping_post();
+		$this->handle_clear_data_post(); // New POST handler
 	}
 
 	/**
@@ -157,6 +158,36 @@ class MainWP_Billing_Overview {
             exit;
 		}
 	}
+
+    /**
+	 * Handle post submission to clear all data.
+	 *
+	 * @return void
+	 */
+    public function handle_clear_data_post() {
+        $utility = MainWP_Billing_Utility::get_instance();
+
+        if ( isset( $_POST['action'] ) && 'clear_billing_data' === $_POST['action'] ) {
+            // Nonce check
+            if ( ! isset( $_POST['mainwp_billing_clear_data_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['mainwp_billing_clear_data_nonce'] ), 'mainwp_billing_clear_data_nonce' ) ) {
+                $utility->update_setting( 'import_message', '<div class="ui red message">Security check failed. Data was NOT cleared.</div>' );
+                return;
+            }
+
+            $result = MainWP_Billing_DB::get_instance()->clear_all_data();
+            
+            if ( is_wp_error( $result ) ) {
+                $utility->update_setting( 'import_message', '<div class="ui red message">Error clearing data: ' . esc_html( $result->get_error_message() ) . '</div>' );
+            } else {
+                $utility->update_setting( 'import_message', '<div class="ui green message">All imported billing data cleared successfully.</div>' );
+            }
+
+            // Redirect back to the import tab
+            $redirect_url = 'admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=import';
+            wp_safe_redirect( $redirect_url );
+            exit;
+        }
+    }
 
 
 	/**
@@ -431,7 +462,7 @@ class MainWP_Billing_Overview {
 									?>
 								</td>
 								<td class="right aligned" data-label="Action">
-                                    <form method="post" action="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=mapping">
+                                    <form method="post" class="ui form" action="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=mapping">
                                         <?php wp_nonce_field( 'mainwp_billing_mapping_nonce', 'mainwp_billing_mapping_nonce' ); ?>
                                         <input type="hidden" name="action" value="update_billing_mapping">
                                         <input type="hidden" name="record_id" value="<?php echo intval( $record->id ); ?>">
@@ -517,8 +548,13 @@ class MainWP_Billing_Overview {
                 ?>
             </p>
 
-            <button class="ui red button" id="mainwp-billing-clear-data-button"><?php esc_html_e( 'Clear All Imported Data', 'mainwp-billing-extension' ); ?></button>
-            <span class="ui basic label hidden" id="mainwp-billing-clear-message" style="display: none;"></span>
+            <form method="post" class="ui form" action="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=import" onsubmit="return confirm('Are you sure you want to permanently delete ALL imported billing data? This action cannot be undone.');">
+                <?php wp_nonce_field( 'mainwp_billing_clear_data_nonce', 'mainwp_billing_clear_data_nonce' ); ?>
+                <input type="hidden" name="action" value="clear_billing_data">
+                <button class="ui red button" type="submit">
+                    <?php esc_html_e( 'Clear All Imported Data', 'mainwp-billing-extension' ); ?>
+                </button>
+            </form>
 
         </div>
         <?php
