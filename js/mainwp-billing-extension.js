@@ -1,4 +1,4 @@
-/* MainWP Billing Extension JS - Version 1.7.1 (Data Retrieval Fix) */
+/* MainWP Billing Extension JS - Version 1.7.2 (Final Fix for recordId retrieval) */
 
 jQuery(document).ready(function ($) {
 
@@ -50,6 +50,7 @@ jQuery(document).ready(function ($) {
             // Re-enable dropdown
             dropdownElement.removeClass('loading disabled');
             
+            // Handle success response (which is JSON)
             if (response.success) {
                 var newSiteName = dropdownElement.find('option[value="' + siteId + '"]').text();
                 
@@ -65,12 +66,25 @@ jQuery(document).ready(function ($) {
                 }
                 
             } else {
-                var errorMsg = response.data.error || 'Unknown error. Check console.';
+                // Handle error response (which should be JSON with an error message)
+                // The second error "Uncaught TypeError: Cannot read properties of undefined (reading 'error')" 
+                // happens if response.data is undefined. We defensively check here.
+                var errorMsg = response.data ? (response.data.error || 'Unknown error. Check console.') : 'Server did not return error message.';
                 showNotification('error', 'Mapping Failed', 'Could not save mapping. ' + errorMsg);
                 
-                // If save fails, rely on Semantic UI to hold the selected value until page refresh
+                // If save fails, revert the dropdown visually
+                dropdownElement.dropdown('restore defaults');
             }
-        }, 'json');
+        }, 'json').fail(function(jqXHR, textStatus, errorThrown) {
+            // This handles cases where the response is NOT JSON (e.g., a PHP Fatal Error/Warning corrupted the output)
+            dropdownElement.removeClass('loading disabled');
+            console.error("AJAX Error: Status=" + textStatus + ", Error=" + errorThrown);
+            console.error("Server Response: ", jqXHR.responseText);
+            showNotification('error', 'Critical Error', 'Server error. Check console and PHP logs for details.');
+            
+            // If connection fails, revert the dropdown visually
+            dropdownElement.dropdown('restore defaults');
+        });
     };
 
 
@@ -83,8 +97,14 @@ jQuery(document).ready(function ($) {
     $('.mainwp-billing-site-select').each(function() {
         var $select = $(this);
         
-        // FIX: Capture the recordId using .attr(), which is more resilient to DOM manipulation.
-        var recordId = $select.attr('data-record-id'); 
+        // FIX: Use this.getAttribute() to reliably capture the recordId from the raw DOM element.
+        var recordId = this.getAttribute('data-record-id'); 
+        
+        // Double-check: if recordId is null/empty, we skip initialization to avoid passing 'undefined'.
+        if (!recordId) {
+            console.error("Skipping dropdown initialization: data-record-id is missing/invalid.");
+            return;
+        }
 
         // Initialize the specific dropdown with the Semantic UI onChange callback
         $select.dropdown({
