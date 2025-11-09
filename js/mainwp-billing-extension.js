@@ -1,6 +1,9 @@
-/* MainWP Billing Extension JS - Version 1.7.5 (Targeting Wrapper Element) */
+/* MainWP Billing Extension JS - Version 1.7.6 (Loop Fix) */
 
 jQuery(document).ready(function ($) {
+
+    // Global flag to prevent onChange loop during AJAX save
+    var isSaving = false;
 
     // --- Notification Logic ---
     var showNotification = function(type, header, message) {
@@ -38,6 +41,7 @@ jQuery(document).ready(function ($) {
         
         // Disable wrapper and show loading indicator
         dropdownElement.addClass('loading disabled');
+        isSaving = true; // Set loop protection flag
 
         var ajaxData = {
             action: 'mainwp_billing_map_site',
@@ -47,8 +51,9 @@ jQuery(document).ready(function ($) {
 
         $.post(ajaxurl, ajaxData, function(response) {
             
-            // Re-enable wrapper
+            // Re-enable wrapper and clear flag
             dropdownElement.removeClass('loading disabled');
+            isSaving = false;
             
             // Handle success response (which is JSON)
             if (response.success) {
@@ -77,6 +82,7 @@ jQuery(document).ready(function ($) {
         }, 'json').fail(function(jqXHR, textStatus, errorThrown) {
             // This handles cases where the response is NOT JSON (e.g., a PHP Fatal Error/Warning corrupted the output)
             dropdownElement.removeClass('loading disabled');
+            isSaving = false; // Clear flag even on failure
             console.error("AJAX Error: Status=" + textStatus + ", Error=" + errorThrown);
             console.error("Server Response: ", jqXHR.responseText);
             showNotification('error', 'Critical Error', 'Server error. Check console and PHP logs for details.');
@@ -90,7 +96,6 @@ jQuery(document).ready(function ($) {
     // --- Setup and Event Handlers ---
     
     // Initialize only dropdowns that don't need the mapping logic (e.g., filter dropdowns).
-    // This is safe because general Semantic UI styling no longer breaks our mapping elements.
     $('.ui.dropdown').not('.mainwp-billing-map-wrapper').dropdown();
 
 
@@ -113,11 +118,13 @@ jQuery(document).ready(function ($) {
         $wrapper.dropdown({
             // Semantic UI's recommended way to listen for changes
             onChange: function(value, text, $choice) {
+                // Only proceed if a save isn't already active
+                if (isSaving) {
+                    console.warn("Change event suppressed during AJAX save.");
+                    return; 
+                }
+
                 // value is the new selected value (site ID)
-                
-                // Use the reliably captured recordId from the outer scope
-                
-                // Call the mapping function for auto-save
                 mapSite(recordId, value, $wrapper);
             }
         });
