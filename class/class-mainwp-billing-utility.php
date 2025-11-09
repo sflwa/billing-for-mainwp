@@ -49,6 +49,41 @@ class MainWP_Billing_Utility {
 		return update_option( $this->option_handle, $this->option );
 	}
 
+	/**
+	 * Retrieve all exclusion settings (clients and sites).
+	 *
+	 * @return array Array containing excluded_client_ids and excluded_site_ids.
+	 */
+	public function get_exclusion_settings() {
+		$defaults = array(
+			'excluded_client_ids' => array(),
+			'excluded_site_ids'   => array(),
+		);
+		$settings = get_option( 'mainwp_billing_exclusions', $defaults );
+
+		// Ensure they are arrays of integers.
+		$settings['excluded_client_ids'] = is_array( $settings['excluded_client_ids'] ) ? array_map( 'intval', $settings['excluded_client_ids'] ) : array();
+		$settings['excluded_site_ids']   = is_array( $settings['excluded_site_ids'] ) ? array_map( 'intval', $settings['excluded_site_ids'] ) : array();
+
+		return $settings;
+	}
+
+	/**
+	 * Update all exclusion settings.
+	 *
+	 * @param array $excluded_clients Array of excluded client IDs.
+	 * @param array $excluded_sites   Array of excluded site IDs.
+	 *
+	 * @return bool True if the option was updated, false otherwise.
+	 */
+	public function update_exclusion_settings( $excluded_clients, $excluded_sites ) {
+		$settings = array(
+			'excluded_client_ids' => array_map( 'intval', array_filter( (array) $excluded_clients ) ),
+			'excluded_site_ids'   => array_map( 'intval', array_filter( (array) $excluded_sites ) ),
+		);
+		return update_option( 'mainwp_billing_exclusions', $settings );
+	}
+
 	public static function get_timestamp( $timestamp ) {
 		$gmtOffset = get_option( 'gmt_offset' );
 
@@ -142,18 +177,18 @@ class MainWP_Billing_Utility {
 	 *
 	 * Gets all child sites from the mainwp_wp table.
 	 *
-	 * @param array|null $site_id  Child sites ID.
+	 * @param array|null $site_id Child sites ID.
 	 *
 	 * @return array Child sites array (objects).
 	 */
 	public static function get_websites( $site_id = null ) {
 		global $wpdb;
 		$table_sites = $wpdb->prefix . 'mainwp_wp';
-		$where = '';
-		$params = array();
+		$where       = '';
+		$params      = array();
 
 		if ( null !== $site_id ) {
-			$where = ' WHERE id = %d ';
+			$where    = ' WHERE id = %d ';
 			$params[] = $site_id;
 		}
 
