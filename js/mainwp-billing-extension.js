@@ -1,89 +1,37 @@
-<?php
-/**
- * MainWP Billing
- *
- * This class handles the extension process.
- *
- * @package MainWP/Extensions
- */
+/* MainWP Billing Extension JS - Version 1.8.1 (Cleaned: Non-AJAX Mapping) */
 
- namespace MainWP\Extensions\Billing;
+jQuery(document).ready(function ($) {
 
- /**
-  * Class MainWP_Billing
-  *
-  * @package MainWP/Extensions
-  */
-class MainWP_Billing_Ajax {
+    // --- Notification Logic (Removed as not used by mapping forms) ---
+    // NOTE: Notification logic is kept here for other potential AJAX actions.
+    var showNotification = function(type, header, message) {
+        var notification = $('.mainwp-billing-notification');
+        
+        // Ensure notification is visible before styling/content update
+        notification.stop(true, true);
 
-	/**
-	 * @var string The update version.
-	 */
-	public $update_version = '1.0';
+        // Reset classes and set content
+        notification.removeClass('success error info');
+        notification.addClass(type);
+        notification.find('.header').text(header);
+        notification.find('p').text(message);
 
-	/**
-	 * @var self|null The singleton instance of the class.
-	 */
-	private static $instance = null;
+        notification.fadeIn(300).css('display', 'block');
 
-	/**
-	 * Get the singleton instance.
-	 *
-	 * @return self|null
-	 */
-	public static function get_instance() {
-		if ( null == self::$instance ) {
-			self::$instance = new self();
-		}
-		return self::$instance;
-	}
+        // Auto-close after 3 seconds
+        setTimeout(function() {
+            notification.fadeOut(500);
+        }, 3000);
+    };
 
-	/**
-	 * MainWP_Billing_Ajax constructor.
-	 */
-	public function __construct() {
-		add_action( 'admin_init', array( &$this, 'admin_init' ) );
-	}
+    // Close button handler for notification
+    $('.mainwp-billing-notification .close.icon').on('click', function() {
+        $(this).closest('.mainwp-billing-notification').fadeOut(500);
+    });
 
-	/**
-     * Admin init.
-     *
-	 * @return void
-	 */
-	public function admin_init() {
-        /**
-		 * Example MainWP AJAX actions.
-		 */
-		do_action( 'mainwp_ajax_add_action', 'mainwp_billing_do_something', array( &$this, 'ajax_do_something' ) );
-        // Removed: do_action( 'mainwp_ajax_add_action', 'mainwp_billing_map_site', array( &$this, 'ajax_map_site' ) );
-        do_action( 'mainwp_ajax_add_action', 'mainwp_billing_clear_data', array( &$this, 'ajax_clear_data' ) ); // New: Clear Data
-	}
+    
+    // Initialize Semantic UI dropdowns for all select elements
+    // All functionality is now handled by PHP POST submission.
+    $('.ui.dropdown').dropdown();
 
-    /**
-     * Ajax reload data.
-     *
-     * @return void
-     */
-	public function ajax_do_something() {
-
-		do_action( 'mainwp_secure_request', 'mainwp_billing_do_something' );
-		// Do your PHP Work here then return the results via wp_send_json.
-	}
-
-    /**
-     * Ajax action to clear all billing data. (Req #4)
-     *
-     * @return void
-     */
-	public function ajax_clear_data() {
-		do_action( 'mainwp_secure_request', 'mainwp_billing_clear_data' );
-
-		$result = MainWP_Billing_DB::get_instance()->clear_all_data();
-
-		if ( is_wp_error( $result ) ) {
-			wp_send_json_error( array( 'error' => $result->get_error_message() ) );
-		}
-
-		wp_send_json_success( array( 'message' => esc_html__( 'All billing data cleared successfully.', 'mainwp-billing-extension' ) ) );
-	}
-}
+});
