@@ -79,7 +79,10 @@ class MainWP_Billing_Ajax {
 		do_action( 'mainwp_secure_request', 'mainwp_billing_map_site' );
 
 		$record_id = isset( $_POST['record_id'] ) ? intval( wp_unslash( $_POST['record_id'] ) ) : 0;
-		$site_id   = isset( $_POST['site_id'] ) ? intval( wp_unslash( $_POST['site_id'] ) ) : 0;
+		// Ensure site_id is sanitized and cast to int.
+		$site_id   = isset( $_POST['site_id'] ) ? intval( sanitize_text_field( wp_unslash( $_POST['site_id'] ) ) ) : 0;
+
+		MainWP_Billing_Utility::log_info( 'Received mapping request: Record ID: ' . $record_id . ', Site ID: ' . $site_id ); // Debug log
 
 		if ( 0 === $record_id ) {
 			wp_send_json_error( array( 'error' => esc_html__( 'Invalid record ID.', 'mainwp-billing-extension' ) ) );
@@ -88,10 +91,20 @@ class MainWP_Billing_Ajax {
 		$result = MainWP_Billing_DB::get_instance()->update_site_map( $record_id, $site_id );
 
 		if ( is_wp_error( $result ) ) {
+			MainWP_Billing_Utility::log_info( 'Mapping update failed: ' . $result->get_error_message() ); // Log failure
 			wp_send_json_error( array( 'error' => $result->get_error_message() ) );
 		}
 
-		wp_send_json_success( array( 'message' => esc_html__( 'Mapping updated successfully.', 'mainwp-billing-extension' ) ) );
+		// wpdb::update returns number of affected rows (1 or 0 if no change) or FALSE on error.
+		// Our update_site_map returns TRUE on success (1 or 0 rows affected) or WP_Error on failure.
+		if ( true === $result ) {
+			MainWP_Billing_Utility::log_info( 'Mapping updated successfully.' ); // Log success
+			wp_send_json_success( array( 'message' => esc_html__( 'Mapping updated successfully.', 'mainwp-billing-extension' ) ) );
+		} else {
+			// This path should ideally not be hit since update_site_map returns TRUE or WP_Error.
+			MainWP_Billing_Utility::log_info( 'Mapping update failed: DB operation ambiguity.' );
+			wp_send_json_error( array( 'error' => esc_html__( 'Database update failed or ambiguity occurred.', 'mainwp-billing-extension' ) ) );
+		}
 	}
 
     /**
