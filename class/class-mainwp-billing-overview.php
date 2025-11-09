@@ -374,7 +374,7 @@ class MainWP_Billing_Overview {
 									?>
 								</td>
 								<td class="right aligned">
-                                    <div class="ui action input">
+                                    <div class="ui fluid action input mainwp-billing-map-cell">
                                         <select class="ui dropdown mainwp-billing-site-select" name="site_id_<?php echo intval( $record->id ); ?>" data-current-site-id="<?php echo intval( $record->mainwp_site_id ); ?>">
                                             <option value="0"><?php esc_html_e( '-- Select Site --', 'mainwp-billing-extension' ); ?></option>
                                             <?php
@@ -384,7 +384,7 @@ class MainWP_Billing_Overview {
                                             }
                                             ?>
                                         </select>
-                                        <button class="ui tiny green button mainwp-billing-map-button" type="button" data-record-id="<?php echo intval( $record->id ); ?>">
+                                        <button class="ui tiny green button mainwp-billing-map-button" type="button">
                                             <?php esc_html_e( 'Update Mapping', 'mainwp-billing-extension' ); ?>
                                         </button>
                                     </div>
