@@ -17,7 +17,7 @@
 class MainWP_Billing_Admin {
 
 	public static $instance = null;
-	public $version         = '1.6';
+	public $version         = '1.7'; // Updated version number
 
 	public static function get_instance() {
 		if ( null == self::$instance ) {
