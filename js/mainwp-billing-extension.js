@@ -1,3 +1,5 @@
+/* MainWP Billing Extension JS - Version 1.7 */
+
 jQuery(document).ready(function ($) {
 
     // --- Notification Logic ---
@@ -80,6 +82,7 @@ jQuery(document).ready(function ($) {
     // Initialize the mapping dropdowns separately to attach the onChange handler for auto-save
     $('.mainwp-billing-site-select').each(function() {
         var $select = $(this);
+        
         // FIX: Capture the recordId immediately outside the onChange closure to avoid scoping issues.
         var recordId = $select.data('record-id'); 
 
