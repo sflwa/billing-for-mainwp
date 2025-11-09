@@ -39,10 +39,12 @@ jQuery(document).ready(function ($) {
         // Retrieve IDs from HTML attributes
         var recordId = row.data('record-id');
         var siteSelect = row.find('.mainwp-billing-site-select');
-        var siteId = siteSelect.val();
-        var siteName = siteSelect.find('option:selected').text();
         
-        console.log("Attempting to map Record: " + recordId + " to Site ID: " + siteId);
+        // Use Semantic UI's way to get the *current* selected value from the dropdown
+        var siteId = siteSelect.dropdown('get value');
+        var siteName = siteSelect.dropdown('get text');
+        
+        // console.log("Attempting to map Record: " + recordId + " to Site ID: " + siteId); // Debugging
         
         // Disable button and select box, show loading
         button.addClass('loading disabled');
