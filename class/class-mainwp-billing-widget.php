@@ -141,34 +141,96 @@ public function render_general_overview_widget() {
 	 * Renders the individual site Overview page widget content.
 	 */
 	public static function render_site_overview_widget() {
-		$site_id = isset( $_GET['dashboard'] ) ? $_GET['dashboard'] : 0;
+		$site_id = isset( $_GET['dashboard'] ) ? intval( wp_unslash( $_GET['dashboard'] ) ) : 0;
 
 		if ( empty( $site_id ) ) {
 			return;
 		}
+
+		// Fetch site data to get client ID
+		$site_data = MainWP_Billing_Utility::get_websites( $site_id ); //
+		$site = ( ! empty( $site_data ) ) ? $site_data[0] : null;
+
+		if ( null === $site ) {
+			return; // Site not found in DB
+		}
+		
+		// Fetch billing records mapped to this specific site ID
+		$records = MainWP_Billing_DB::get_instance()->get_billing_records( array( 'mainwp_site_id' => $site_id ) ); //
+		$records_count = count( $records );
+
+		// Check exclusion status
+		$utility = MainWP_Billing_Utility::get_instance();
+		$exclusions = $utility->get_exclusion_settings(); //
+		$excluded_clients = $exclusions['excluded_client_ids'];
+		$excluded_sites   = $exclusions['excluded_site_ids'];
+
+		$is_excluded = in_array( $site_id, $excluded_sites ) || ( isset( $site->client_id ) && in_array( intval( $site->client_id ), $excluded_clients ) );
+
 		?>
-        <div class="ui grid">
-            <div class="twelve wide column">
-                <h3 class="ui header handle-drag">
-					<?php echo __( 'Billing Individual Widget', 'mainwp-billing-extension' ); ?>
-                    <div class="sub header"><?php echo __( 'This is the Billing Individual Widget.', 'mainwp-billing-extension' ); ?></div>
-                </h3>
+        <div class="mainwp-widget-header">
+            <div class="ui grid">
+                <div class="twelve wide column">
+                    <h2 class="ui header handle-drag">
+                        <?php esc_html_e( 'Recurring Billing Status', 'mainwp-billing-extension' ); ?>
+                        <div class="sub header">
+							<?php
+							if ( $is_excluded ) {
+								esc_html_e( 'This site is excluded from billing reports.', 'mainwp-billing-extension' );
+							} else {
+								echo sprintf( esc_html( _n( 'Found %d mapped billing record.', 'Found %d mapped billing records.', $records_count, 'mainwp-billing-extension' ) ), $records_count );
+							}
+							?>
+                        </div>
+                    </h2>
+                </div>
+                <div class="four wide column right aligned">
+                    
+                </div>
             </div>
         </div>
         <div class="ui hidden divider"></div>
-        <div class="ui fluid placeholder">
-            <div class="image header">
-                <div class="line"></div>
-                <div class="line"></div>
-            </div>
+        <div class="ui fluid segment" style="overflow-x: auto;">
+			<?php
+			if ( ! empty( $records ) ) :
+				// 2) Show any mapped billing items
+				?>
+                <table class="ui celled unstackable table">
+                    <thead>
+                    <tr>
+                        <th><?php esc_html_e( 'Template', 'mainwp-billing-extension' ); ?></th>
+                        <th><?php esc_html_e( 'Amount', 'mainwp-billing-extension' ); ?></th>
+                        <th><?php esc_html_e( 'Next Date', 'mainwp-billing-extension' ); ?></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+					<?php foreach ( $records as $record ) : ?>
+                        <tr>
+                            <td><?php echo esc_html( $record->template_name ); ?></td>
+                            <td><?php echo esc_html( '$' . number_format( floatval( $record->amount ), 2 ) ); ?></td>
+                            <td><?php echo MainWP_Billing_Utility::format_date( strtotime( $record->next_date ) ); ?></td>
+                        </tr>
+					<?php endforeach; ?>
+                    </tbody>
+                </table>
+			<?php elseif ( $is_excluded ) : ?>
+                <div class="ui green message">
+                    <p style="font-weight: bold;">
+						<?php esc_html_e( 'This site is explicitly excluded from all billing reports.', 'mainwp-billing-extension' ); ?>
+                    </p>
+                </div>
+			<?php else : ?>
+                <div class="ui red message">
+                    <p style="font-weight: bold;">
+						<?php esc_html_e( 'WARNING: No recurring billing is configured for this site.', 'mainwp-billing-extension' ); ?>
+                    </p>
+                    <a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=mapping" class="ui basic red button">
+						<?php esc_html_e( 'Go to Mapping Page', 'mainwp-billing-extension' ); ?>
+                    </a>
+                </div>
+			<?php endif; ?>
         </div>
-        <div class="ui hidden divider"></div>
-        <div class="ui divider" style="margin-left:-1em;margin-right:-1em;"></div>
-        <div class="ui two columns grid">
-            <div class="left aligned column">
-                <a href="admin.php?page=Extensions-Billing-For-Mainwp-Main" class="ui basic green button"><?php esc_html_e( 'Billing Dashboard', 'mainwp-billing-extension' ); ?></a>
-            </div>
-        </div>
+      
 		<?php
 	}
 }
