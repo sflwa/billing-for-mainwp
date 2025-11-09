@@ -38,9 +38,6 @@ jQuery(document).ready(function ($) {
         
         // Disable wrapper and show loading indicator
         dropdownElement.addClass('loading disabled');
-        
-        // FIX: Update the hidden input field's value with the new siteId
-        dropdownElement.find('.mainwp-site-id-input').val(siteId);
 
         var ajaxData = {
             action: 'mainwp_billing_map_site',
@@ -93,7 +90,7 @@ jQuery(document).ready(function ($) {
     // --- Setup and Event Handlers ---
     
     // Initialize only dropdowns that don't need the mapping logic (e.g., filter dropdowns).
-    // The selector targets dropdowns without the 'mainwp-billing-map-wrapper' class.
+    // This is safe because general Semantic UI styling no longer breaks our mapping elements.
     $('.ui.dropdown').not('.mainwp-billing-map-wrapper').dropdown();
 
 
