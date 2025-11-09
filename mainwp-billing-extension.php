@@ -3,7 +3,7 @@
   Plugin Name: MainWP Billing Extension
   Plugin URI: https://mainwp.com
   Description: MainWP Billing Extension manages recurring client transactions and syncs them with MainWP child sites.
-  Version: 4.0
+  Version: 4.1
   Author: MainWP
   Author URI: https://mainwp.com
   Documentation URI: https://kb.mainwp.com/docs/billing-extension/
@@ -36,7 +36,7 @@ class MainWP_Billing_Extension_Activator {
 	protected $childFile;
 	protected $plugin_handle    = 'mainwp-billing-extension';
 	protected $product_id       = 'MainWP Billing Extension';
-	protected $software_version = '4.0';
+	protected $software_version = '4.1';
 
 	public function __construct() {
 		$this->childFile = __FILE__;
