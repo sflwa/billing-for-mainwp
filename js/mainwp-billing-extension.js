@@ -1,91 +1,104 @@
 jQuery(document).ready(function ($) {
 
-    // Logic for Manual Mapping on the Mapping Tab
+    // --- Notification Logic ---
+    var showNotification = function(type, header, message) {
+        var notification = $('.mainwp-billing-notification');
+        
+        notification.removeClass('success error info');
+        notification.addClass(type);
+        notification.find('.header').text(header);
+        notification.find('p').text(message);
 
-    var mapSite = function(recordId, siteId, button) {
+        notification.fadeIn(300).css('display', 'block');
+
+        // Auto-close after 3 seconds
+        setTimeout(function() {
+            notification.fadeOut(500);
+        }, 3000);
+    };
+
+    // Close button handler for notification
+    $('.mainwp-billing-notification .close.icon').on('click', function() {
+        $(this).closest('.mainwp-billing-notification').fadeOut(500);
+    });
+
+
+    // --- Manual Mapping Logic (Mapping Tab) ---
+
+    var mapSite = function(recordId, siteId, dropdownElement) {
+        var row = dropdownElement.closest('tr');
+        var checkmark = row.find('.mainwp-billing-mapped-check');
+        var originalSiteName = row.find('td:eq(3)').text();
+        
+        // Disable dropdown and show loading indicator
+        dropdownElement.addClass('loading disabled');
+        checkmark.hide(); 
+
         var ajaxData = {
             action: 'mainwp_billing_map_site',
             record_id: recordId,
             site_id: siteId
         };
 
-        button.addClass('loading');
-
         $.post(ajaxurl, ajaxData, function(response) {
-            button.removeClass('loading');
-            var row = button.closest('tr');
-
+            
+            // Re-enable dropdown
+            dropdownElement.removeClass('loading disabled');
+            
             if (response.success) {
-                // Get the newly selected site's name for updating the table cell
-                var newSiteName = row.find('.mainwp-billing-site-select option[value="' + siteId + '"]').text();
+                var newSiteName = dropdownElement.find('option[value="' + siteId + '"]').text();
+                
+                // Update the dropdown's "original-value" data attribute
+                dropdownElement.data('original-value', siteId);
 
-                // Display success checkmark
-                row.find('.mainwp-billing-mapped-check').show();
-                // Hide button
-                button.hide();
-
-                // Update the Mapped Site column (5th cell) with the new site name/link
+                // Update the Mapped Site column (4th cell in this table)
                 var mappedSiteColumn = row.find('td:eq(3)');
                 if (siteId > 0) {
                     var siteLink = 'admin.php?page=managesites&dashboard=' + siteId;
                     mappedSiteColumn.html('<a href="' + siteLink + '" target="_blank">' + newSiteName + '</a>');
+                    showNotification('success', 'Mapping Saved', 'Record ' + recordId + ' successfully mapped to ' + newSiteName + '.');
                 } else {
                      mappedSiteColumn.html('<span class="ui red label">Unmapped</span>');
+                     showNotification('info', 'Mapping Cleared', 'Record ' + recordId + ' is now unmapped.');
                 }
-
-                // Update the dropdown's "original-value" data attribute
-                row.find('.mainwp-billing-site-select').data('original-value', siteId);
-
-
-                setTimeout(function() {
-                    row.find('.mainwp-billing-mapped-check').fadeOut();
-                }, 2000);
-
+                
             } else {
-                alert('Error mapping site: ' + (response.data.error || 'Unknown error.'));
+                var errorMsg = response.data.error || 'Unknown error. Check console.';
+                showNotification('error', 'Mapping Failed', 'Could not save mapping. ' + errorMsg);
+                
                 // Revert dropdown selection to original value if mapping failed
-                var originalValue = row.find('.mainwp-billing-site-select').data('original-value');
-                row.find('.mainwp-billing-site-select').dropdown('set selected', originalValue);
+                var originalValue = dropdownElement.data('original-value');
+                dropdownElement.dropdown('set selected', originalValue);
             }
         }, 'json');
     };
 
 
-    // Initialize dropdowns and set original value for comparison
+    // --- Setup and Event Handlers ---
+
+    // Initialize Semantic UI dropdowns
+    $('.ui.dropdown').dropdown();
+
+    // Store initial mapped value and attach change listener for auto-save
     $('.mainwp-billing-site-select').each(function() {
         var $select = $(this);
+        
         // Store the initial mapped ID as the original value
         $select.data('original-value', $select.val());
 
         $select.on('change', function() {
             var selectedId = $(this).val();
             var originalId = $select.data('original-value');
-            var button = $select.siblings('.mainwp-billing-map-button');
-
+            
+            // Only trigger save if the value has genuinely changed
             if (selectedId != originalId) {
-                // New site selected, show the 'Map' button
-                button.show();
-            } else {
-                // Selection reverted to original, hide the 'Map' button
-                button.hide();
+                var recordId = $(this).data('record-id');
+                mapSite(recordId, selectedId, $(this));
             }
-        });
-
-        // Handle button click for manual map
-        $select.siblings('.mainwp-billing-map-button').on('click', function(e) {
-            e.preventDefault();
-            var recordId = $(this).data('record-id');
-            var siteId = $select.val();
-
-            mapSite(recordId, siteId, $(this));
         });
     });
 
-    // Initialize Semantic UI dropdown
-    $('.ui.dropdown').dropdown();
-
-
-    // Logic for Clear All Data Button (Import Tab - Req #4)
+    // --- Clear All Data Button Logic (Import Tab) ---
     $('#mainwp-billing-clear-data-button').on('click', function() {
         if (!confirm('Are you sure you want to permanently delete ALL imported billing data? This action cannot be undone.')) {
             return;
@@ -103,21 +116,16 @@ jQuery(document).ready(function ($) {
 
         $.post(ajaxurl, ajaxData, function(response) {
             button.removeClass('loading');
-            messageSpan.show();
-
+            
             if (response.success) {
-                messageSpan.addClass('green').text(response.data.message);
+                showNotification('success', 'Data Cleared', response.data.message);
                 
                 // Clear the Last Imported Date display
                 button.closest('.ui.segment').find('strong:contains("Last Imported Date:")').next().text('Never imported.');
 
             } else {
-                messageSpan.addClass('red').text('Error: ' + (response.data.error || 'Failed to clear data.'));
+                showNotification('error', 'Clear Failed', response.data.error || 'Failed to clear data.');
             }
-
-            setTimeout(function() {
-                messageSpan.fadeOut();
-            }, 5000);
 
         }, 'json');
     });
