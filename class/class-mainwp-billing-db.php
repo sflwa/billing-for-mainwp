@@ -283,8 +283,8 @@ class MainWP_Billing_DB {
 		);
 		$header_map = array(); // Will map expected column name to CSV column index.
 
-		// Read the header row using fgetcsv.
-		$header_row = fgetcsv( $handle, 0, ',', ' ' );
+		// Read the header row using fgetcsv. FIX: Use double quote as enclosure.
+		$header_row = fgetcsv( $handle, 0, ',', '"' );
 		if ( false === $header_row || null === $header_row ) {
 			fclose( $handle );
 			return new \WP_Error( 'empty_file', esc_html__( 'The uploaded file is empty or headers could not be read.', 'mainwp-billing-extension' ) );
@@ -320,7 +320,7 @@ class MainWP_Billing_DB {
 		}
 
 
-		while ( ( $data = fgetcsv( $handle, 0, ',', ' ' ) ) !== false ) {
+		while ( ( $data = fgetcsv( $handle, 0, ',', '"' ) ) !== false ) { // FIX: Use double quote as enclosure.
 			// Skip rows that are too short or empty.
 			if ( count( $data ) < count( $header_row ) ) {
 				continue;
