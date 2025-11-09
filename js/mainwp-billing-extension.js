@@ -1,4 +1,4 @@
-/* MainWP Billing Extension JS - Version 1.7 */
+/* MainWP Billing Extension JS - Version 1.7.1 (Data Retrieval Fix) */
 
 jQuery(document).ready(function ($) {
 
@@ -83,8 +83,8 @@ jQuery(document).ready(function ($) {
     $('.mainwp-billing-site-select').each(function() {
         var $select = $(this);
         
-        // FIX: Capture the recordId immediately outside the onChange closure to avoid scoping issues.
-        var recordId = $select.data('record-id'); 
+        // FIX: Capture the recordId using .attr(), which is more resilient to DOM manipulation.
+        var recordId = $select.attr('data-record-id'); 
 
         // Initialize the specific dropdown with the Semantic UI onChange callback
         $select.dropdown({
