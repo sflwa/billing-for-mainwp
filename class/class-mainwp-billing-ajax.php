@@ -88,6 +88,7 @@ class MainWP_Billing_Ajax {
 			wp_send_json_error( array( 'error' => esc_html__( 'Invalid record ID.', 'mainwp-billing-extension' ) ) );
 		}
 
+		// update_site_map returns the number of affected rows (0 or 1) or WP_Error.
 		$result = MainWP_Billing_DB::get_instance()->update_site_map( $record_id, $site_id );
 
 		if ( is_wp_error( $result ) ) {
@@ -95,16 +96,9 @@ class MainWP_Billing_Ajax {
 			wp_send_json_error( array( 'error' => $result->get_error_message() ) );
 		}
 
-		// wpdb::update returns number of affected rows (1 or 0 if no change) or FALSE on error.
-		// Our update_site_map returns TRUE on success (1 or 0 rows affected) or WP_Error on failure.
-		if ( true === $result ) {
-			MainWP_Billing_Utility::log_info( 'Mapping updated successfully.' ); // Log success
-			wp_send_json_success( array( 'message' => esc_html__( 'Mapping updated successfully.', 'mainwp-billing-extension' ) ) );
-		} else {
-			// This path should ideally not be hit since update_site_map returns TRUE or WP_Error.
-			MainWP_Billing_Utility::log_info( 'Mapping update failed: DB operation ambiguity.' );
-			wp_send_json_error( array( 'error' => esc_html__( 'Database update failed or ambiguity occurred.', 'mainwp-billing-extension' ) ) );
-		}
+        // Success: 1 row was updated, or 0 rows were updated (meaning it was already correct).
+		MainWP_Billing_Utility::log_info( 'Mapping updated successfully. Rows affected: ' . $result );
+		wp_send_json_success( array( 'message' => esc_html__( 'Mapping updated successfully.', 'mainwp-billing-extension' ) ) );
 	}
 
     /**
