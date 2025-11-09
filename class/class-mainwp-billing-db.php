@@ -122,19 +122,18 @@ class MainWP_Billing_DB {
 	}
 
 	/**
-	 * Retrieve all MainWP clients.
+	 * Retrieve all MainWP clients. (FIXED: Using wp_mainwp_wp_clients table)
 	 *
 	 * @return array Array of client objects (id, name).
 	 */
 	public function get_all_clients() {
-		$table_clients = $this->wpdb->prefix . 'mainwp_clients';
+		$table_clients = $this->wpdb->prefix . 'mainwp_wp_clients';
 
         // Check if the client table exists first.
         if( $this->wpdb->get_var( "SHOW TABLES LIKE '{$table_clients}'" ) != $table_clients ) {
             return array();
         }
 
-		// Use 'client_id' as 'id' for consistency with site mapping logic
 		$sql = "SELECT client_id AS id, name FROM {$table_clients} ORDER BY name ASC";
 		$results = $this->wpdb->get_results( $sql );
 		return ( is_array( $results ) ) ? $results : array();
@@ -197,9 +196,8 @@ class MainWP_Billing_DB {
 			}
 		}
 
-		// Filter by MainWP Client ID (for Dashboard tab - Req #2)
+		// Filter by MainWP Client ID (for Dashboard tab)
 		if ( isset( $params['mainwp_client_id'] ) && $params['mainwp_client_id'] > 0 ) {
-			// Note: We need to filter by client_id on the site table join, not the record table.
 			$where .= ' AND site.client_id = %d ';
 			$sql_params[] = intval( $params['mainwp_client_id'] );
 		}
