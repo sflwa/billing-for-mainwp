@@ -158,6 +158,50 @@ class MainWP_Billing_DB {
 	}
 
 	/**
+	 * Retrieve all MainWP sites with their corresponding mapping status.
+	 *
+	 * This is used for the Dashboard tab to list all MainWP sites, grouped by
+	 * whether or not they have a billing record assigned.
+	 *
+	 * @param int $client_id Optional. Filter by MainWP Client ID.
+	 *
+	 * @return array Array of site objects with an added 'is_mapped' flag.
+	 */
+	public function get_all_mainwp_sites_with_mapping_status( $client_id = 0 ) {
+		$table_sites = $this->wpdb->prefix . 'mainwp_wp';
+		$table_records = $this->get_table_name( 'records' ); // mainwp_billing_records
+
+		$where = ' WHERE 1=1 ';
+		$sql_params = array();
+
+		// Add MainWP client filter if provided
+		if ( $client_id > 0 ) {
+			$where .= ' AND site.client_id = %d ';
+			$sql_params[] = $client_id;
+		}
+
+		// The query: Select all sites, and check if any billing record is mapped to them.
+		$sql = "SELECT site.id, site.name, site.url, site.client_id, 
+				CASE WHEN EXISTS (
+					SELECT 1 FROM {$table_records} rec 
+					WHERE rec.mainwp_site_id = site.id
+					LIMIT 1
+				) THEN 1 ELSE 0 END AS is_mapped
+				FROM {$table_sites} site
+				{$where}
+				ORDER BY site.name ASC";
+
+		if ( ! empty( $sql_params ) ) {
+			$results = $this->wpdb->get_results( $this->wpdb->prepare( $sql, $sql_params ) );
+		} else {
+			$results = $this->wpdb->get_results( $sql );
+		}
+
+		return ( is_array( $results ) ) ? $results : array();
+	}
+
+
+	/**
 	 * Retrieve billing records, optionally filtered and joined with MainWP sites.
 	 *
 	 * @param array $params Query parameters (e.g., 'qb_client_name', 'mainwp_site_id').
@@ -198,6 +242,7 @@ class MainWP_Billing_DB {
 
 		// Filter by MainWP Client ID (for Dashboard tab)
 		if ( isset( $params['mainwp_client_id'] ) && $params['mainwp_client_id'] > 0 ) {
+			// Join with mainwp_wp is already done in the main SQL.
 			$where .= ' AND site.client_id = %d ';
 			$sql_params[] = intval( $params['mainwp_client_id'] );
 		}
