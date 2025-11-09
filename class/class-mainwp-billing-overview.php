@@ -134,6 +134,21 @@ class MainWP_Billing_Overview {
 			<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=mapping" class="item <?php echo ( $current_tab == 'mapping' ) ? 'active' : ''; ?>"><i class="exchange icon"></i> <?php esc_html_e( 'Mapping', 'mainwp-billing-extension' ); ?></a>
 			<a href="admin.php?page=Extensions-Billing-For-Mainwp-Main&tab=import" class="item <?php echo ( $current_tab == 'import' ) ? 'active' : ''; ?>"><i class="upload icon"></i> <?php esc_html_e( 'Import', 'mainwp-billing-extension' ); ?></a>
 		</div>
+
+        <div class="ui success message fixed-bottom-right mainwp-billing-notification" style="display: none;">
+            <i class="close icon"></i>
+            <div class="header"></div>
+            <p></p>
+        </div>
+        <style>
+            .fixed-bottom-right {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1000;
+                min-width: 300px;
+            }
+        </style>
 		<?php
 
 		if ( $current_tab == 'import' ) {
@@ -295,7 +310,7 @@ class MainWP_Billing_Overview {
         ?>
 		<div class="ui segment">
 			<h2 class="ui header"><?php esc_html_e( 'Manual Site Mapping', 'mainwp-billing-extension' ); ?></h2>
-            <p><?php esc_html_e( 'Use this tab to manually link QuickBooks records to MainWP Child Sites.', 'mainwp-billing-extension' ); ?></p>
+            <p><?php esc_html_e( 'Use this tab to manually link QuickBooks records to MainWP Child Sites. Changes save automatically.', 'mainwp-billing-extension' ); ?></p>
 			<div class="ui divider"></div>
 
 			<form method="get" action="admin.php">
@@ -339,7 +354,7 @@ class MainWP_Billing_Overview {
 							<th><?php esc_html_e( 'Template Name', 'mainwp-billing-extension' ); ?></th>
 							<th><?php esc_html_e( 'Amount', 'mainwp-billing-extension' ); ?></th>
 							<th><?php esc_html_e( 'Mapped Site', 'mainwp-billing-extension' ); ?></th>
-							<th class="right aligned"><?php esc_html_e( 'Manual Map/Update', 'mainwp-billing-extension' ); ?></th>
+							<th class="right aligned"><?php esc_html_e( 'Map/Update', 'mainwp-billing-extension' ); ?></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -367,8 +382,7 @@ class MainWP_Billing_Overview {
 										}
 										?>
 									</select>
-									<button class="ui tiny green button mainwp-billing-map-button" data-record-id="<?php echo intval( $record->id ); ?>" style="display:none;"><?php esc_html_e( 'Map', 'mainwp-billing-extension' ); ?></button>
-                                    <i class="ui small check circle icon green mainwp-billing-mapped-check" style="display:none;"></i>
+                                    <i class="ui small check circle icon green mainwp-billing-mapped-check" style="display:none; margin-left: 10px;"></i>
 								</td>
 							</tr>
 						<?php endforeach; ?>
