@@ -80,13 +80,16 @@ jQuery(document).ready(function ($) {
     // Initialize the mapping dropdowns separately to attach the onChange handler for auto-save
     $('.mainwp-billing-site-select').each(function() {
         var $select = $(this);
-        
+        // FIX: Capture the recordId immediately outside the onChange closure to avoid scoping issues.
+        var recordId = $select.data('record-id'); 
+
         // Initialize the specific dropdown with the Semantic UI onChange callback
         $select.dropdown({
             // Semantic UI's recommended way to listen for changes
             onChange: function(value, text, $choice) {
                 // value is the new selected value (site ID)
-                var recordId = $select.data('record-id');
+                
+                // Use the captured recordId from the outer scope
                 
                 // Call the mapping function for auto-save
                 mapSite(recordId, value, $select);
