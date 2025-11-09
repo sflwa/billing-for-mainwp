@@ -4,6 +4,10 @@ jQuery(document).ready(function ($) {
     var showNotification = function(type, header, message) {
         var notification = $('.mainwp-billing-notification');
         
+        // Ensure notification is visible before styling/content update
+        notification.stop(true, true);
+
+        // Reset classes and set content
         notification.removeClass('success error info');
         notification.addClass(type);
         notification.find('.header').text(header);
@@ -27,12 +31,11 @@ jQuery(document).ready(function ($) {
 
     var mapSite = function(recordId, siteId, dropdownElement) {
         var row = dropdownElement.closest('tr');
-        var checkmark = row.find('.mainwp-billing-mapped-check');
-        var originalSiteName = row.find('td:eq(3)').text();
+        
+        console.log("Mapping Record: " + recordId + " to Site ID: " + siteId); // Debugging
         
         // Disable dropdown and show loading indicator
         dropdownElement.addClass('loading disabled');
-        checkmark.hide(); 
 
         var ajaxData = {
             action: 'mainwp_billing_map_site',
@@ -48,12 +51,9 @@ jQuery(document).ready(function ($) {
             if (response.success) {
                 var newSiteName = dropdownElement.find('option[value="' + siteId + '"]').text();
                 
-                // Update the dropdown's "original-value" data attribute
-                dropdownElement.data('original-value', siteId);
-
                 // Update the Mapped Site column (4th cell in this table)
                 var mappedSiteColumn = row.find('td:eq(3)');
-                if (siteId > 0) {
+                if (siteId > 0 && siteId !== '0') {
                     var siteLink = 'admin.php?page=managesites&dashboard=' + siteId;
                     mappedSiteColumn.html('<a href="' + siteLink + '" target="_blank">' + newSiteName + '</a>');
                     showNotification('success', 'Mapping Saved', 'Record ' + recordId + ' successfully mapped to ' + newSiteName + '.');
@@ -66,9 +66,7 @@ jQuery(document).ready(function ($) {
                 var errorMsg = response.data.error || 'Unknown error. Check console.';
                 showNotification('error', 'Mapping Failed', 'Could not save mapping. ' + errorMsg);
                 
-                // Revert dropdown selection to original value if mapping failed
-                var originalValue = dropdownElement.data('original-value');
-                dropdownElement.dropdown('set selected', originalValue);
+                // If save fails, rely on Semantic UI to hold the selected value until page refresh
             }
         }, 'json');
     };
@@ -76,27 +74,26 @@ jQuery(document).ready(function ($) {
 
     // --- Setup and Event Handlers ---
 
-    // Initialize Semantic UI dropdowns
+    // Initialize all dropdowns generally
     $('.ui.dropdown').dropdown();
 
-    // Store initial mapped value and attach change listener for auto-save
+    // Initialize the mapping dropdowns separately to attach the onChange handler for auto-save
     $('.mainwp-billing-site-select').each(function() {
         var $select = $(this);
         
-        // Store the initial mapped ID as the original value
-        $select.data('original-value', $select.val());
-
-        $select.on('change', function() {
-            var selectedId = $(this).val();
-            var originalId = $select.data('original-value');
-            
-            // Only trigger save if the value has genuinely changed
-            if (selectedId != originalId) {
-                var recordId = $(this).data('record-id');
-                mapSite(recordId, selectedId, $(this));
+        // Initialize the specific dropdown with the Semantic UI onChange callback
+        $select.dropdown({
+            // Semantic UI's recommended way to listen for changes
+            onChange: function(value, text, $choice) {
+                // value is the new selected value (site ID)
+                var recordId = $select.data('record-id');
+                
+                // Call the mapping function for auto-save
+                mapSite(recordId, value, $select);
             }
         });
     });
+
 
     // --- Clear All Data Button Logic (Import Tab) ---
     $('#mainwp-billing-clear-data-button').on('click', function() {
@@ -105,10 +102,8 @@ jQuery(document).ready(function ($) {
         }
 
         var button = $(this);
-        var messageSpan = $('#mainwp-billing-clear-message');
-
+        
         button.addClass('loading');
-        messageSpan.hide().removeClass('green red').text('');
 
         var ajaxData = {
             action: 'mainwp_billing_clear_data',
